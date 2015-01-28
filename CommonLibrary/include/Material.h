@@ -478,6 +478,7 @@ public:
 	TextureGL* colorMap;
 	TextureGL* normalMap;
 	TextureGL* specularMap;
+	TextureGL* aoMap;
 
 	glm::vec4 diffuseMult;
 	bool isMix;
@@ -492,6 +493,7 @@ public:
 	void setColorMult( const glm::vec4& color );
 	void setColorMult2( const glm::vec4& color );
 	void setNormalMap( TextureGL* tex );
+	void setAOMap( TextureGL* tex );
 	void setSpecularMap( TextureGL* tex );
 	void setOutline( bool outline );
 	virtual void SetupUniforms(MATERIAL_DRAW_PASS Pass);

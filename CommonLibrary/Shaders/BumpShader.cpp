@@ -31,6 +31,9 @@ void BumpShader::load()
 	uNormalMap = (UniformSampler2D*) GetUniformByName( "normalMap" );
 	assert( uNormalMap != 0 );
 
+	uAOMap = (UniformSampler2D*) GetUniformByName( "aoMap" );
+	assert( uAOMap != 0 );
+
 	uNormalMat = (UniformMat3f*) GetUniformByName("NormalMatrix");
 	assert(uNormalMat != 0);
 

@@ -890,6 +890,7 @@ MaterialBump::MaterialBump() : Material( MATERIAL_TYPE::MATERIAL_BUMP )
 	colorMap = NULL;
 	normalMap = NULL;
 	specularMap = NULL;
+	aoMap = TextureManager::get()->createRGBATexture("whiteTex", vec4(1.0,1.0,1.0,1.0), 16, 16 );
 }
 
 void MaterialBump::setColorMap( TextureGL* tex )
@@ -912,6 +913,11 @@ void MaterialBump::setColorMult2( const vec4& color )
 void MaterialBump::setNormalMap( TextureGL* tex )
 {
 	normalMap = tex;
+}
+
+void MaterialBump::setAOMap( TextureGL* tex )
+{
+	aoMap = tex;
 }
 
 void MaterialBump::setSpecularMap( TextureGL* tex )
@@ -937,6 +943,8 @@ void MaterialBump::SetupUniforms( MATERIAL_DRAW_PASS Pass )
 					shaderMixSpecularMap->uTextureSampler->setValue( colorMap->getTexId() );
 				if( normalMap != NULL )
 					shaderMixSpecularMap->uNormalMap->setValue( normalMap->getTexId() );
+				if( aoMap != NULL )
+					shaderMixSpecularMap->uAOMap->setValue( aoMap->getTexId() );
 				shaderMixSpecularMap->uOutline->setValue( outline );
 				shaderMixSpecularMap->uDiffuseMult->setValue( diffuseMult );
 				shaderMixSpecularMap->uDiffuseMult2->setValue( diffuseMult2 );
@@ -948,12 +956,16 @@ void MaterialBump::SetupUniforms( MATERIAL_DRAW_PASS Pass )
 					shaderSpecularMap->uTextureSampler->setValue( colorMap->getTexId() );
 				if( normalMap != NULL )
 					shaderSpecularMap->uNormalMap->setValue( normalMap->getTexId() );
+				if( aoMap != NULL )
+					shaderSpecularMap->uAOMap->setValue( aoMap->getTexId() );
 				shaderSpecularMap->uOutline->setValue( outline );
 				shaderSpecularMap->uDiffuseMult->setValue( diffuseMult );
 			}
 		}
 		else
 		{
+			if( aoMap != NULL )
+				shader->uAOMap->setValue( aoMap->getTexId() );
 			if( colorMap != NULL )
 				shader->uTextureSampler->setValue( colorMap->getTexId() );
 			if( normalMap != NULL )

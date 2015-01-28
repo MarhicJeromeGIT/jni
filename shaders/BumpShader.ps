@@ -2,6 +2,7 @@
 uniform sampler2D colorMap;
 uniform sampler2D normalMap;
 uniform sampler2D shadowmap;
+uniform sampler2D aoMap;
 
 uniform vec3 light_ambient;
 uniform vec3 light_diffuse;
@@ -35,9 +36,6 @@ varying vec4 PosFromLightPOV;
 
 void main (void)
 {
-	float distSqr = dot(lightVec, lightVec);
-	float att = clamp(1.0 - invRadius * sqrt(distSqr), 0.0, 1.0);
-	vec3 lVec = lightVec * inversesqrt(distSqr);
 	vec3 bump = normalize( texture2D(normalMap, texCoord).xyz * 2.0 - 1.0);
 
 	vec3 vVec = normalize(eyeVec);
@@ -45,14 +43,15 @@ void main (void)
 	vec4 texColor = texture2D(colorMap, texCoord);
 
 #ifdef DIFFUSE_MIX
-	float mixValue = length(texColor.xyz);
-	texColor = mix( diffuseMult, diffuseMult2, mixValue );
+	float mixValue = texColor.r;
+	texColor = mix( diffuseMult, diffuseMult2, mixValue);
 #elif defined( DIFFUSE_MULT )
-  texColor *= diffuseMult;
+	texColor *= diffuseMult;
 #endif
 
-	float lambert = max( dot(lVec, bump), 0.0 );
-	vec4 lightColor = vec4(light_ambient + light_diffuse*lambert, 1.0) * texColor;         
+	float lambert = max( dot(lightVec, bump), 0.0 );
+	float aoEffect = texture2D(aoMap, texCoord).r;
+	vec4 lightColor = vec4(light_ambient + light_diffuse*lambert*aoEffect, 1.0);         
 
   vec3 ProjCoords = PosFromLightPOV.xyz / PosFromLightPOV.w;                                  
   float z =  ProjCoords.z;                                                     
@@ -72,7 +71,7 @@ void main (void)
 	
 		if( lambert > 0.0 )
 		{
-			float specular = pow(clamp(dot(reflect(-lVec, bump), vVec), 0.0, 1.0), shininess );
+			float specular = pow(clamp(dot(reflect(-lightVec, bump), vVec), 0.0, 1.0), shininess );
 #ifdef SPECULAR_MAP
 			vSpecular = texture2D(specularMap, texCoord) * specular;	
 #else
@@ -85,11 +84,11 @@ void main (void)
 	
 	if( lambert > 0.0 )
 	{
-		float specular = pow(clamp(dot(reflect(-lVec, bump), vVec), 0.0, 1.0), shininess );
+		float specular = pow(clamp(dot(reflect(-lightVec, bump), vVec), 0.0, 1.0), shininess );
 #ifdef SPECULAR_MAP
 		vSpecular = texture2D(specularMap, texCoord) * specular;	
 #else
-		vSpecular = vec4(1.0,0.0,0.0,1.0) * specular;	
+		vSpecular = vec4(specular,specular,specular,1.0);	
 #endif			
 	}
 
@@ -101,7 +100,8 @@ void main (void)
 		side = smoothstep( 0.5, 1.0, 1.0 - abs( dot( normalize(n), normalize(eyepos.xyz) ) ) );
 	}
 	
-	lightColor += vec4(0.3,0.3,0.3,1.0);
-	gl_FragColor = vec4(side,0.0,0.0,1.0) + vec4( vec3(lightColor) * att * shadow, 1.0) + vSpecular;
+	gl_FragColor = vec4(side,0.0,0.0,1.0) + vec4( vec3(lightColor) * vec3(texColor) * shadow, 1.0) + vSpecular;
 	
+	//gl_FragColor *= 0.001;
+	//gl_FragColor += vec4( texColor.rgb, 1.0 );
 }

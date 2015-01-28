@@ -141,7 +141,7 @@ TextureGL* TextureManager::CombinedTexture( const std::string& name, TEXTURE_COM
 	TextureMixShader* shader = (TextureMixShader*)ShaderManager::get()->getShader(TEXTURE_MIX_SHADER);
 	assert(shader != NULL );
 
-	newTex->CreateRGBATexture( name, vec4(0,0,0,0), std::min(tex1->width,2048), std::min(tex1->height,2048) );
+	newTex->CreateRGBATexture( name, vec4(0.4,0,0,1.0), std::min(tex1->width,2048), std::min(tex1->height,2048) );
 	TextureGL* depthTex = new TextureGL();
 	depthTex->CreateDepthTexture("depthTexTemp", newTex->width, newTex->height );
 
@@ -157,16 +157,16 @@ TextureGL* TextureManager::CombinedTexture( const std::string& name, TEXTURE_COM
 
 	MixFbo->Bind();
 	glViewport(0,0,newTex->width, newTex->height);
-	glClearColor(0.0,0.0, 0.0,1.0);
+	glClearColor(0.0,0.0, 1.0,1.0);
 	glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
 
 	ShaderParams::get()->objectMatrix     = mat4(1.0);
 	ShaderParams::get()->viewMatrix       = mat4(1.0);
-	ShaderParams::get()->projectionMatrix = glm::ortho(0.0f,1.0f,0.0f,1.0f,0.001f,100.0f);
+	ShaderParams::get()->projectionMatrix = glm::ortho(0.0f,1.0f,0.0f,1.0f,0.0f,1000.0f);
 
 	shader->enable( *ShaderParams::get() );
 	shader->uTextureSampler1->setValue( tex1->getTexId() );
-	shader->uTextureSampler2->setValue( tex2->getTexId() );
+	shader->uTextureSampler2->setValue( tex1->getTexId() );
 	shader->uTextureMix->setValue( combine == TEXTURE_COMBINATION::MIX );
 	shader->uTextureMul->setValue( combine == TEXTURE_COMBINATION::MULTIPLY );
 	shader->uTextureDiff->setValue( false );//combine == TEXTURE_COMBINATION::DIFFERENCE );
@@ -176,6 +176,7 @@ TextureGL* TextureManager::CombinedTexture( const std::string& name, TEXTURE_COM
 
 	MixFbo->Disable();
 	glViewport(0,0,ShaderParams::get()->win_x, ShaderParams::get()->win_y);
+	glClearColor( 0.2f,0.2f,0.2f,1.0f );
 
 	delete MixFbo;
 	delete mesh;

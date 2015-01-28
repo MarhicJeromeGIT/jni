@@ -126,7 +126,7 @@ void SceneManager::resizeGL( int width, int height )
 void SceneManager::setScene( const std::string& sceneName )
 {
 	// look for the index of this new scene by comparing the name:
-	for(int index = 0 ; index < scenesItemArray.size(); index++ )
+	for( unsigned int index = 0 ; index < scenesItemArray.size(); index++ )
 	{
 		if( sceneName == scenesItemArray[index].first )
 		{
@@ -188,7 +188,7 @@ void SceneManager::mouseMoveEvent( int x, int y )
 
 void SceneManager::mouseWheelEvent( int numSteps )
 {
-	camera_distance -= numSteps * 1.0f;
+	camera_distance -= numSteps * 0.2f;
 
 	float x = 0.5*ShaderParams::get()->win_x;
 	float y = 0.5*ShaderParams::get()->win_y;

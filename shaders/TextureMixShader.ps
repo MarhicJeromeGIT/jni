@@ -14,8 +14,7 @@ void main()
 
 	if( textureMix )
 	{
-		float l = length(col2.xyz);
-		gl_FragColor = mix( col1, vec4(0.133,0.133,0.133,1), l);
+		gl_FragColor = col1 + col2;
 	}
 	else if( textureMul )
 	{

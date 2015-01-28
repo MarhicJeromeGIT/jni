@@ -548,6 +548,7 @@ OpenGLStaticModelInstance::OpenGLStaticModelInstance( const mat4& mat, OpenGLMod
 		{
 			if( glModel->meshes[meshIndex].hasNormalMap )
 			{
+				// Default material for model with a normal map
 				MaterialBump* newMat = new MaterialBump();
 				newMat->setColorMap( glModel->meshes[meshIndex].texture );
 				newMat->setNormalMap( glModel->meshes[meshIndex].normalmap );

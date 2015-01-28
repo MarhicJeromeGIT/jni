@@ -18,6 +18,7 @@ public:
 	UniformSampler2D*  uTextureSampler;
 	UniformSampler2D*  uShadowMapSampler;
 	UniformSampler2D*  uNormalMap;
+	UniformSampler2D*  uAOMap;
 	UniformMat4f* 	   lightMatUniform;
 	UniformVec4f* 	   uClipPlane;
 	UniformMat3f*	   uNormalMat;
