@@ -1,0 +1,45 @@
+// Light:
+uniform vec4 lightDiffuseColor;
+uniform vec4 ambient;
+uniform sampler2D tex;
+uniform bool bUseScreenCoord;
+
+// Material:
+uniform vec4 diffuse_color;
+
+varying vec3 lightDir, eyeVec, normal;
+varying vec2 texCoord;
+varying vec4 eyepos;
+
+void main()
+{
+  vec4 color  = texture2D(tex, texCoord );
+
+	vec3 L = normalize(lightDir);
+  vec3 N = normalize(normal);
+	float diffuse = max(0.0, dot(N,L) );
+	float specular = 0.0;
+
+	if(diffuse > 0.8)
+		diffuse = 1.0;
+	else if( diffuse > 0.6 )
+		diffuse = 0.8;
+	else if( diffuse > 0.4 )
+		diffuse = 0.4;
+	else
+		diffuse = 0.0;
+
+	if(diffuse > 0.0)
+	{
+		vec3 E = normalize(eyeVec);
+		vec3 R = reflect(-L, N);
+		specular = pow(clamp(dot(R, E), 0.0, 1.0), 2.0 );
+	}
+
+//	float side = max( 0.0, dot( N, vec3(0,0,1) ) );
+//	float outlineColor = side < 0.4 ? 0.0 : 1.0;
+
+
+	vec4 light = ambient + diffuse * diffuse_color * lightDiffuseColor;
+  gl_FragColor = vec4( light.xyz * color.xyz, color.a ) + specular;
+}

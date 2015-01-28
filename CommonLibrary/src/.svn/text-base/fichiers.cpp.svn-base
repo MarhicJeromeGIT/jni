@@ -1,0 +1,16 @@
+#include "fichiers.h"
+#include "macros.h"
+using namespace std;
+
+
+string readFile(const char* filename)
+{
+	std::ifstream fichier( filename );
+	classert(fichier);
+    
+    std::stringstream buffer; 
+    buffer << fichier.rdbuf();
+    fichier.close();
+
+    return buffer.str();
+}

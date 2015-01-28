@@ -1,0 +1,24 @@
+#pragma once
+
+#include "TextureGL.h"
+#include <map>
+using namespace std;
+#include <ctime>
+
+class TextureManager
+{
+	map<string,TextureGL*> textureMap;
+
+	static TextureManager* textureManager;
+	TextureManager(void);
+	~TextureManager(void);
+
+	std::time_t lastmodified;
+public:
+	static TextureManager* getTextureManager();
+	
+	TextureGL* getTexture( const string& textureFilename );
+
+	void Update(float deltaTime);
+};
+

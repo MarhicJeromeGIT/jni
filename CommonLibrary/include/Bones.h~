@@ -1,0 +1,40 @@
+#pragma once
+
+#include <glm/glm.hpp>
+#include <vector>
+using namespace std;
+using namespace glm;
+
+class Bone
+{
+public:
+	char name[20];
+
+  Bone* parent;
+  vector<Bone*> childs;
+
+	vec3 color;
+
+  // relative to the parent
+  vec3 offset;
+  vec3 rotation;
+
+  // relative position of the end position wrt the root
+  vec4 position;
+  mat4 localTransform;
+  mat4 worldTransform;
+
+	mat4 Binv;
+
+  Bone( Bone* parent, const vec3& offset, const vec3& rotation);
+	Bone( Bone* p, const mat4& transform);
+
+  void draw();
+	void computeBinv();
+	void computeWorldTransform();
+	void setBonePosition( vec3 pos );
+
+	void recomputeWorldTransform();
+private:
+   void addChild( Bone* child );
+};

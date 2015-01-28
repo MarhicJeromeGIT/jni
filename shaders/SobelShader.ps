@@ -1,0 +1,48 @@
+
+uniform sampler2D tex;
+uniform float texWidth;
+uniform float texHeight;
+
+varying vec2 vTexCoord;
+
+void main()
+{
+	if( texture2D( tex, vTexCoord ).b < 0.5 )
+		discard;
+
+	float dx = 1.0/texWidth;
+	float dy = 1.0/texHeight;
+
+	// filtre de sobel : X
+	// |1 0 -1|
+	// |2 0 -2|
+	// |1 0 -1|
+	//					 Y
+	// |1   2  1|
+	// |0   0  0|
+	// |-1 -2 -1|
+
+	vec2 center = vTexCoord;
+
+	vec4 a = texture2D( tex, center + vec2(-dx,-dy) );
+	vec4 b = texture2D( tex, center + vec2(-dx, 0 ) );
+	vec4 c = texture2D( tex, center + vec2(-dx, dy) );
+
+	vec4 d = texture2D( tex, center + vec2(0,-dy) );
+	vec4 e = texture2D( tex, center );
+	vec4 f = texture2D( tex, center + vec2(0, dy) );
+
+	vec4 g = texture2D( tex, center + vec2(+dx,-dy) );
+	vec4 h = texture2D( tex, center + vec2(+dx, 0 ) ); 
+	vec4 i = texture2D( tex, center + vec2(+dx, dy) );
+
+//	vec4 col_X = 1.0*a+2.0*b+1.0*c+-1.0*g+-2.0*h+-1.0*i;
+//	vec4 col_Y = 1.0*a+-1.0*c+2.0*d+-2.0*f+1.0*g+-1.0*i;
+	vec4 col_X = -1.0*(a+b+c + g+h+i) + 2.0*(d+e+f);
+	vec4 col_Y = -1.0*(a+d+g+c+f+i) + 2.0*(b+e+h);
+  
+	vec4 col_finale = ( col_X*col_X + col_Y*col_Y );
+	float alpha = length( col_finale );
+
+	gl_FragColor = vec4(0.0,0.0,0.0, alpha );
+}

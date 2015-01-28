@@ -1,0 +1,23 @@
+
+uniform sampler2D tex;
+uniform vec4 color;
+
+#ifdef VERTEX_TRANSPARENCY
+varying float alpha;
+#endif
+
+varying vec2 texCoord;
+
+void main()
+{ 
+	float f= 100.0;
+	float n = 0.1;
+	float z = (2.0 * n) / (f + n - texture2D( tex, texCoord ).x * (f - n));
+	vec4 col = vec4(z,z,z,1.0);
+	gl_FragColor = texture2D( tex, texCoord ) * color;
+	//gl_FragColor = col * color;
+	
+#ifdef VERTEX_TRANSPARENCY
+	gl_FragColor.a *= alpha;
+#endif
+}

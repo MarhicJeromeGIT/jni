@@ -1,0 +1,39 @@
+#pragma once
+
+#include <glm/glm.hpp>
+#include <gtc/quaternion.hpp>
+using namespace glm;
+#include <string>
+#include <vector>
+using namespace std;
+
+struct aiScene;
+
+struct BoneAnimation
+{
+	vec3 position;
+	quat rotation;
+};
+
+struct AnimatedBone
+{
+	string BoneName;
+	vector< BoneAnimation > animation;
+};
+
+class MeshAnimation
+{
+public:
+	vector< AnimatedBone > bonesAnimations;
+	float animationTime;
+	float maxAnimationTime;
+	float deltaAnim; // dt between two keys, Ill assume it's always uniform for now
+
+	unsigned int nbBones;
+	glm::mat4* CurrentBoneAnimation; // directly usable format
+
+	MeshAnimation(const aiScene* animScene);
+	~MeshAnimation(void);
+	void update( float dt );
+};
+

@@ -1,0 +1,28 @@
+
+uniform sampler2D shadowmap;
+uniform vec4 color;
+
+varying vec4 PosFromLightPOV;
+varying vec2 uv;
+
+void main()
+{
+  vec3 ProjCoords = PosFromLightPOV.xyz / PosFromLightPOV.w;                                  
+  float z =  ProjCoords.z;                                                     
+  float depth = texture(shadowmap, PosFromLightPOV.xy ).z;
+	float shadow = 0.0;                                          
+    
+	if (depth < (z - 0.0005) )
+	{                                                                 
+    shadow = 0.5;                                                                         
+  }
+	else                                                                                    
+  {
+	  shadow = 1.0;                                                                         
+	}
+
+	vec4 c = texture( shadowmap, uv );
+
+		
+	gl_FragColor = vec4( vec3( color * shadow), color.w) +  c * 0.001;
+}

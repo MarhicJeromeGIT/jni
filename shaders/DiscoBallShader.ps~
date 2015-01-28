@@ -1,0 +1,40 @@
+uniform vec4 color;
+uniform float time;
+uniform sampler2D tex;
+
+varying vec2 texCoord;
+varying vec3 normal;
+varying vec3 lightDir1,lightDir2;
+varying vec3 eyeVec;
+
+void main()
+{
+	 	vec4 texColor = texture2D(tex,texCoord);
+		
+
+		vec3 L1 = normalize(lightDir1);
+		vec3 L2 = normalize(lightDir2);
+ 		vec3 N  = normalize(normal);
+
+		vec4 col = mix( vec4(1.0,0.0,0.0,1.0),
+										vec4(0.0,1.0,0.0,1.0),
+										sin(time) );
+		float diffuse = max(0.0, dot(N,L1)) + max(0.0, dot(N,L2));
+
+		if( time < -1.0 || texColor.x < 0.0 || color.y == 0.5 )
+			discard;
+	
+		float specular = 0.0;
+
+		if(diffuse > 0.0)
+		{
+			vec3 E = normalize(eyeVec);
+			vec3 R2 = reflect(L2, N);
+			specular = pow(clamp(dot(R2, E), 0.0, 1.0), 8.0 );
+		}
+
+		gl_FragColor = 0.3 * color + col * diffuse + specular * vec4(1.0,1.0,1.0,1.0);
+	  gl_FragColor.a = 1.0;
+}
+
+          

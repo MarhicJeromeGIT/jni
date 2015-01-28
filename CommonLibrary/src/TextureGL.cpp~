@@ -1,0 +1,123 @@
+﻿#include "TextureGL.h"
+#include "tga.h"
+#include <iostream>
+
+
+
+GLuint makeTextureRGBA( int sx, int sy,unsigned char* data)
+{ 
+
+	int num_mipmaps = 4;
+	GLuint textureID;
+	glGenTextures(1, &textureID);
+	glBindTexture(GL_TEXTURE_2D, textureID);
+/*	// I HAVE TO COMMENT THAT glTexStorage2D(GL_TEXTURE_2D, num_mipmaps, GL_RGBA8, sx, sy);
+	glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, sx, sy, GL_RGBA, GL_UNSIGNED_BYTE, data );
+	glGenerateMipmap(GL_TEXTURE_2D);  //Generate num_mipmaps number of mipmaps here.
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+*/
+    glTexImage2D(
+        GL_TEXTURE_2D, 0,           /* target, level */
+        GL_RGB8,                    /* internal format */
+        width, height, 0,           /* width, height, border */
+        GL_BGR, GL_UNSIGNED_BYTE,   /* external format, type */
+        pixels                      /* pixels */
+    );
+	
+	glTexImage2D (
+		GL_TEXTURE_2D, 	//Type : texture 2D
+		0, 	//Mipmap : aucun
+		GL_RGBA, 	//Couleurs : 4
+		sx, 	//Largeur 
+		sy, 	//Hauteur 
+		0, 	//Largeur du bord : 0
+		GL_RGBA	, 	//Format : RGB
+		GL_UNSIGNED_BYTE, 	//Type des couleurs
+		data 	//Addresse de l'image
+	); 	
+
+     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S,     GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T,     GL_CLAMP_TO_EDGE);
+/*
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+	*/
+	return textureID;
+}
+
+TextureGL::TextureGL(const string& filename)
+{
+	Load(filename);
+}
+
+void TextureGL::Load(const string& filename)
+{
+	string format = filename.substr( filename.size()-3 , string::npos );
+	error = true;
+	width - 0;
+	height = 0;
+	bpp = 0;
+
+	if( format == "tga" )
+	{
+		pixels = readTGA(filename.c_str(), width, height, bpp);
+	}
+	else
+	{
+		cout<<"format non supporte pour "<<filename<<endl;
+		return;
+	}
+
+	if( bpp == 24 || bpp == 32 )
+	{
+		texId = makeTextureRGBA(width,height,pixels);
+	}
+	else
+	{
+		cout<<"format non supporte pour "<<filename<<" (transparence alpha) "<<endl;
+		return;
+	}
+
+	error = false;
+}
+
+GLuint TextureGL::getTexId()
+{
+	return texId;
+}
+
+bool TextureGL::IsLoaded()
+{
+	return !error && width != 0 && height != 0 && bpp != 0;
+}
+
+TextureGL* TextureGL_Create(const string& filename)
+{
+	TextureGL* tex = new TextureGL(filename);
+	if( !tex->IsLoaded() ) return NULL;
+	return tex;
+}
+
+
+// create an OpenGL texture
+GLuint TextureGL_CreateEmptyTexture(GLenum target, int w, int h, GLint internalformat, GLenum format)
+{
+	GLuint texid;
+    glGenTextures(1, &texid);
+    glBindTexture(target, texid);
+
+    glTexParameteri(target, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(target, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(target, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(target, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
+    glTexImage2D(target, 0, internalformat, w, h, 0, format, GL_FLOAT, 0);
+    return texid;
+}

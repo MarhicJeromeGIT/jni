@@ -1,0 +1,12 @@
+precision mediump float;
+
+uniform samplerCube gCubemapTexture;
+
+varying vec3 oTexCoord;
+
+void main()
+{
+    gl_FragColor = vec4(1.0,0.0,0.0,1.0) + textureCube(gCubemapTexture, oTexCoord);
+} 
+
+          

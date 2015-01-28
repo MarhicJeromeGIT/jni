@@ -1,0 +1,18 @@
+
+uniform sampler2D tex;
+uniform vec4 color;
+
+#ifdef VERTEX_TRANSPARENCY
+varying float alpha;
+#endif
+
+varying vec2 texCoord;
+
+void main()
+{ 
+	gl_FragColor = texture2D( tex, texCoord ) * color;
+
+#ifdef VERTEX_TRANSPARENCY
+	gl_FragColor.a *= alpha;
+#endif
+}

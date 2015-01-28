@@ -1,0 +1,34 @@
+#extension GL_EXT_geometry_shader4 : enable
+
+uniform mat4 ProjectionMatrix;
+
+void main()                                                    
+{        
+  // eye space                                                                      
+  vec3 pos = gl_PositionIn[0].xyz;
+
+	float x = 10.5;
+	float y = 10.5;
+
+	// BAS GAUCHE (0,0)
+  gl_Position = ProjectionMatrix * vec4(pos - x - y, 1);  
+	EmitVertex();         
+                                     
+	// HAUT GAUCHE (0,0)
+  gl_Position = ProjectionMatrix * vec4(pos - x - y, 1);  
+  EmitVertex();                                              
+
+	// BAS DROITE (1,0)
+  gl_Position = ProjectionMatrix * vec4(pos + x - y, 1); 
+  EmitVertex();  
+                                            
+/*
+  // HAUT DROITE (1,1)
+  gl_Position = gl_ProjectionMatrix * vec4(pos + x + y, 1); 
+	EmitVertex();  
+  EndPrimitive();
+*/
+
+}
+
+                                                 

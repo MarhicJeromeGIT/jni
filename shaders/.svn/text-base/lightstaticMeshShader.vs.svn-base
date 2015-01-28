@@ -1,0 +1,32 @@
+#version 150
+
+
+uniform mat4 ModelMatrix;
+uniform mat4 ViewMatrix;
+uniform mat4 ProjectionMatrix;
+uniform mat3 NormalMatrix;
+uniform vec3 LightPos; // directional light
+uniform mat4 clippingMat; // uninverted view matrix
+
+
+in vec3  vertexPosition, iNormal;
+in vec2  iTexCoord;
+
+out vec2 oTexCoord;
+out float NdotL;
+
+out vec3 interpolatedVertexEye;
+
+void main(void)
+{	
+	vec3 N = normalize( NormalMatrix * iNormal );
+	vec3 L = normalize( (ViewMatrix  * vec4(LightPos,1.0)).xyz );
+
+	interpolatedVertexEye = vec3( ModelMatrix * vec4(vertexPosition,1.0) );
+
+	oTexCoord = iTexCoord;
+
+	NdotL = max(dot(N,L), 0.0);
+
+    gl_Position =  ProjectionMatrix * ViewMatrix * ModelMatrix * vec4(vertexPosition,1.0);
+}

@@ -1,0 +1,33 @@
+
+uniform sampler2D tex1;
+uniform sampler2D tex2;
+uniform bool textureMix;
+uniform bool textureMul;
+uniform bool textureDiff;
+
+varying vec2 texCoord;
+
+void main()
+{
+	vec4 col1 = texture2D( tex1, texCoord );
+	vec4 col2 = texture2D( tex2, texCoord );
+
+	if( textureMix )
+	{
+		float l = length(col2.xyz);
+		gl_FragColor = mix( col1, vec4(0.133,0.133,0.133,1), l);
+	}
+	else if( textureMul )
+	{
+		gl_FragColor = col1 * col2;
+	}
+	else if( textureDiff )
+	{
+		gl_FragColor =  (col1 - col2);
+		gl_FragColor.a = 1.0;
+	}
+	else
+	{
+	  gl_FragColor = vec4(1.0,0.0,1.0,1.0);
+	}
+}

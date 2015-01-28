@@ -1,0 +1,54 @@
+uniform sampler2D distortion;
+uniform sampler2D opacity;
+uniform sampler2D flame;
+uniform float time;
+
+varying vec2 texCoord;
+varying vec3 view, normal;
+
+vec2 TexCoord0, TexCoord1, TexCoord2, TexCoord3;
+
+vec4 bx2(vec4 x)
+{
+   return 2.0 * x - 1.0;
+} 
+
+void main (void)
+{
+	vec4 layer_speed = vec4(0.7, 0.9, 0.9, 1.0);
+
+	TexCoord0 = texCoord.st;
+	TexCoord1.x = texCoord.x + time * 0.3;
+	TexCoord1.y = texCoord.y - layer_speed.x * time ;
+	TexCoord2.x = texCoord.x + time * 0.2;
+	TexCoord2.y = texCoord.y - layer_speed.y * time ;
+	TexCoord3.x = texCoord.x+ time * 0.1;
+	TexCoord3.y = texCoord.y - layer_speed.z * time;
+
+	float gradient; // our base 'stripe color'
+	gradient = float(mod(texCoord.t, 1.0));
+	gradient = clamp(gradient, 0.0, 1.0);
+
+	float distortion_amount0  = gradient*gradient*0.2;
+	float distortion_amount1  = gradient*0.3;
+	float distortion_amount2  = gradient*gradient*0.4;
+   
+	vec4 height_attenuation = vec4(0.2, 0.2, 0.0, 1.0);
+	vec4 noise0 = texture2D(distortion, TexCoord1*0.5);
+	vec4 noise1 = texture2D(distortion, TexCoord2*2.0);
+	vec4 noise2 = texture2D(distortion, TexCoord3*2.5);
+
+	vec2 noiseSum = (bx2(noise0) * distortion_amount0 + bx2(noise1) * distortion_amount1 + bx2(noise2) * distortion_amount2).xy;    
+	vec2 perturbedBaseCoords = TexCoord0.xy + noiseSum * (TexCoord0.y * height_attenuation.x + height_attenuation.y);
+	
+	vec4 opacity = texture2D(opacity, perturbedBaseCoords );
+	vec4 flame = texture2D(flame, perturbedBaseCoords );
+	
+	float fresnel = dot(normalize(view),normalize(normal));
+	fresnel = abs(fresnel);
+	fresnel = 1.0;
+	
+	gl_FragColor = flame * opacity * fresnel;
+	gl_FragColor.a =opacity.r;
+}
+ 

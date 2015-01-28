@@ -1,0 +1,52 @@
+#pragma once
+
+#include "Cleanable.h"
+#include <string>
+using namespace std;
+#include <GL\glew.h>
+#include <vector>
+#include <map>
+class Uniform;
+class UniformMat4f;
+class Mesh;
+
+class Shader : public ICleanableObserver
+{
+private:
+	
+	vector<ICleanable*> _dirtyUniform;
+	map<string,Uniform*> _uniforms;
+
+
+protected:
+	GLuint _program;
+	bool LoadShaderFromFile( const string& vertexSource, const string& fragmentSource );
+	void CompileProgram( const string& vertexSource, const string& fragmentSource );
+	void GetUniforms();
+
+	GLuint checkCompileStatus(GLuint shader, GLint *status);
+
+public:
+	Shader();
+	~Shader();
+
+	virtual void Draw( Mesh* mesh ) = 0;
+
+	Uniform* GetUniformByName(const string& name);
+
+	void Clean();
+	void NotifyDirty(ICleanable *value);
+
+	virtual void enable();
+	virtual void disable();
+
+	GLuint getProgram(){ return _program; }
+
+	UniformMat4f*      uModelMat;
+	UniformMat4f*      uViewMat;
+	UniformMat4f*      uProjectionMat;
+
+private:
+	GLuint compileProgram(const string& vertexSource, const string& gsource, const string& fragmentSource);
+};
+

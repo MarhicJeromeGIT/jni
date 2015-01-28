@@ -1,0 +1,22 @@
+#version 150
+
+uniform vec4 clipPlane;
+uniform sampler2D tex;
+
+in vec2 oTexCoord;
+in float NdotL;
+
+in vec3 interpolatedVertexEye;
+
+void main()
+{
+    float clipPos = dot (interpolatedVertexEye, clipPlane.xyz) + clipPlane.w;
+    if (clipPos < 0.0) {
+        discard;
+    }	
+
+	vec3 col = texture(tex, oTexCoord ).rgb;
+	gl_FragColor = vec4(col * (0.3 + NdotL), 1.0 );
+}
+
+          

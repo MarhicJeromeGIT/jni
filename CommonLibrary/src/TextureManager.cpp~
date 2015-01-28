@@ -1,0 +1,78 @@
+#include "TextureManager.h"
+#include "assert.h"
+
+//#include <boost/filesystem/operations.hpp>
+//#include <boost/filesystem/path.hpp>
+//using namespace boost::filesystem;
+
+TextureManager* TextureManager::textureManager = 0;
+
+TextureManager* TextureManager::getTextureManager()
+{
+	if( textureManager == 0 )
+	{
+		textureManager = new TextureManager();
+	}
+	return textureManager;
+}
+
+TextureManager::TextureManager(void)
+{
+	lastmodified = 0;
+}
+
+
+TextureManager::~TextureManager(void)
+{
+}
+
+TextureGL* TextureManager::getTexture( const string& textureFilename )
+{
+	
+
+	auto it = (textureMap.find( textureFilename ));
+	if( it != textureMap.end() )
+	{
+		pair<string,TextureGL*> paire = *it;
+		return paire.second;
+	}
+	else
+	{
+		// try to load the texture :
+		TextureGL* newTex = new TextureGL( textureFilename );
+		assert(!newTex->error);
+		if( newTex != 0 )
+		{
+			lastmodified = std::max( lastmodified, last_write_time( textureFilename ) );
+			textureMap.insert( pair<string,TextureGL*>(textureFilename, newTex) );
+			return newTex;
+		}
+		else
+		{
+			assert(false);
+			return 0;
+		}
+	}
+}
+
+void TextureManager::Update(float deltaTime)
+{
+	// check for file modification every 2 seconds
+/*	static float elapsed = 0;
+	elapsed += deltaTime;
+	if( elapsed > 2.0 )
+	{
+		for(auto it = textureMap.begin(); it != textureMap.end(); it++ )
+		{
+			string filename = (*it).first;
+			std::time_t testdate = last_write_time( filename );
+			if( testdate > lastmodified )
+			{
+				// we should reload the file :
+				// but keep it at the same map Index !
+				lastmodified = testdate;
+				(*it).second->Load( filename ); 
+			}
+		}
+	}*/
+}

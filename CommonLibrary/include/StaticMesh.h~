@@ -1,0 +1,36 @@
+#pragma once
+
+#include <GL/glew.h>
+#include "TextureGL.h"
+#include "Mesh.h"
+#include <glm.hpp>
+using namespace glm;
+
+
+struct aiMesh;
+class StaticMeshShader;
+
+class StaticMesh : public Mesh
+{
+public:
+	int totalVertices;
+	int nbTriangles;
+
+	GLuint vertexBuffer;
+	GLuint texCoordBuffer;
+	GLuint indicesBuffer;
+	GLuint normalBuffer;
+
+	TextureGL* texture;
+
+public:
+	StaticMesh( vec3* vertices, vec2* texCoord, vec3* normales, int nbVertices, ivec3* triangles, int nbTriangles, const char* filename );
+	StaticMesh(Shader* shader, const string& meshName, Shader* firstPass = 0) : Mesh(shader,meshName, firstPass) {}
+	StaticMesh( Shader* shader,const string& meshName, aiMesh* mesh, const string& textureName, Shader* firstPass = 0 );
+	~StaticMesh(void);
+
+	void LoadMesh( aiMesh* mesh );
+	virtual void Draw( Shader* shader);
+
+	virtual void SendData( Shader* shader );
+};

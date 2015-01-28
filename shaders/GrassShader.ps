@@ -1,0 +1,27 @@
+
+uniform sampler2D tex;
+uniform sampler2D grassFadeSampler;
+uniform sampler2D grassShadowSampler;
+uniform float intensity;
+
+varying vec2 texCoord;
+varying vec2 vGrassCoord;
+
+varying float diffuse;
+
+void main()
+{ 
+	float shadow = texture2D( grassShadowSampler, vGrassCoord ).r;
+	shadow = 0.5 + 0.5 * smoothstep( 0.5, 1.0, shadow );
+	
+	vec3 greenFade = texture2D( grassFadeSampler, vGrassCoord ).rgb;
+	vec3 ambient = vec3(0.3,0.3,0.3);
+	vec3 lightColor = ambient + vec3( diffuse, diffuse, diffuse);
+	vec4 grass =  texture2D( tex, texCoord );
+	
+	vec3 color = grass.rgb * greenFade * lightColor;
+	color *= intensity * shadow;
+	
+	gl_FragColor = vec4( color , grass.a );
+
+}

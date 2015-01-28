@@ -1,0 +1,24 @@
+#pragma once
+
+#include <string>
+class Shader;
+
+class Mesh
+{
+protected:
+	std::string name;
+public:
+	Shader* shader;
+	Shader* firstPass;
+
+	Mesh() : shader(0), firstPass(0) {}
+	Mesh(Shader* shader, const std::string& name, Shader* firstPass = 0);
+	~Mesh(void);
+
+	const std::string& getName(){ return name; }
+
+	virtual void Draw( Shader* shader ) {};
+
+	virtual void SendData( Shader* shader ){};
+};
+

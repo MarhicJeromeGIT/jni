@@ -1,0 +1,25 @@
+
+uniform sampler2D tex;
+
+varying vec2 texCoord;
+varying vec4 vColor;
+
+void main()
+{
+//	float c = texture2D( tex, texCoord ).r;
+//	gl_FragColor = vec4( c * vColor.rgb, texture2D( tex, texCoord ).a );
+
+		float outline = texture2D( tex, texCoord ).g;
+		float color   = texture2D( tex, texCoord ).r;
+
+		if( color > 0.0 )
+		{
+			gl_FragColor = vec4(vColor.rgb, vColor.a );
+		}
+		else
+		{
+			gl_FragColor = vec4(1.0,1.0,1.0,outline);
+		}
+
+}
+          

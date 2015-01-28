@@ -1,0 +1,19 @@
+
+uniform mat4 LightMat;
+uniform mat4 ProjectionMatrix;
+uniform mat4 ModelMatrix;
+uniform mat4 ViewMatrix;
+
+in vec3  vertexPosition;
+in vec2 texcoord;
+
+varying vec4 PosFromLightPOV;
+varying vec2 uv;
+
+void main(void)
+{	
+	uv = texcoord;
+
+	PosFromLightPOV = LightMat * vec4(vertexPosition,1.0);
+  gl_Position =  ProjectionMatrix * ViewMatrix * ModelMatrix * vec4(vertexPosition,1.0);
+}

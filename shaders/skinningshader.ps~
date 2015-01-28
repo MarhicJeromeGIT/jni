@@ -1,0 +1,37 @@
+uniform sampler2D tex;
+uniform vec4 clipPlane;
+
+varying vec3 Normal, LightDir, EyeVec;
+varying vec2 texCoord;
+varying vec3 interpolatedVertexEye;
+
+void main()
+{
+	float clipPos = dot (interpolatedVertexEye, clipPlane.xyz) + clipPlane.w;
+	if (clipPos < 0.0) {
+		  discard;
+	}	
+
+	vec4 color;
+	vec4 col = texture2D( tex, texCoord );
+	// Ambient light :
+	color = vec4(0.4,0.4,0.4,0.0);
+
+	// Diffuse and specular
+	vec3 N = normalize(Normal);
+	vec3 L = normalize(LightDir);
+	float lambertTerm = dot(N,L);
+	if(lambertTerm > 0.0)
+	{
+		color += vec4(1,1,1,1.0) * lambertTerm;
+		vec3 E = normalize(EyeVec);
+		vec3 R = reflect(-L, N);
+		//float specular = pow( max(dot(R, E), 0.0), 16 );
+		float specular = 0.2;
+
+		color += vec4(1,0,0,1.0)  * specular;
+	}
+
+	gl_FragColor = vec4( vec3(color * col), col.a);
+}
+

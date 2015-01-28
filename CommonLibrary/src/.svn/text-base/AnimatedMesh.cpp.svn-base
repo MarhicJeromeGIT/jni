@@ -1,0 +1,326 @@
+#include "AnimatedMesh.h"
+
+#include <assimp/scene.h>
+#include <assimp/postprocess.h>
+#include <glm/gtc/matrix_transform.hpp> 
+#include "TextureManager.h"
+#include <glm/gtx/quaternion.hpp> 
+#include <glm/gtc/quaternion.hpp>
+#include "ShaderList.h"
+#include "Bones.h"
+#include "Quaternion.h"
+
+AnimatedMesh::AnimatedMesh(Shader* s) : Mesh(s, "" )
+{
+}
+
+AnimatedMesh::AnimatedMesh(Shader* s, aiMesh* mesh, const aiScene* scene, const vector<Bone*>& BoneArray, Shader* fp) : Mesh(s,"", fp)
+{
+	totalVertices = mesh->mNumVertices;
+	nbTriangles   = mesh->mNumFaces;
+	
+	vec3* vertexPositionArray        = new vec3[ totalVertices ];
+	vec4 *bonesWeight                = new vec4[ totalVertices ];
+	ivec4 *bonesIndex                = new ivec4[ totalVertices];
+	unsigned int* vertexIndiceArray  = new unsigned int[ nbTriangles * 3 ];
+
+	int verticeIndex = 0;
+	int vertexIndexOffset = 0;
+	int vertexIndexNumber = 0;
+	
+	int mat = mesh->mMaterialIndex;
+	aiMaterial* material = scene->mMaterials[mat];
+
+	aiString path;	// filename
+	aiReturn texFound;
+	texFound = material->GetTexture(aiTextureType_DIFFUSE, 0, &path);
+	
+	if( texFound != -1 )
+	{
+		//if( mesh->hasM
+		char texname[15];
+		char drive[5];
+		char dir[100];
+		char ext[5];
+	// add to comment that
+  //	_splitpath(path.C_Str(),drive, dir, texname, ext );
+
+		char texture_filename[20];
+		strcpy( texture_filename, texname );
+		strcat( texture_filename, ext );
+
+		texture = TextureManager::getTextureManager()->getTexture( texture_filename );
+	}
+	else
+	{
+		texture = TextureManager::getTextureManager()->getTexture("heros.tga");
+	}
+
+	for( unsigned int k = 0; k < mesh->mNumVertices; k++ )
+	{
+		aiVector3D position = mesh->mVertices[k];
+		vertexPositionArray[verticeIndex].x = position.x;
+		vertexPositionArray[verticeIndex].y = position.y;
+		vertexPositionArray[verticeIndex].z = position.z;
+
+		//pour chaque vertex, on trouve tous les bones qui influencent le vertex
+		// on recupere le bone index and it's weight
+		int nbbones = 0;
+		for( int bone=0; bone<mesh->mNumBones; bone++ )
+		{
+			aiBone* aibone = mesh->mBones[bone];
+			for( int numWeight=0 ; numWeight< aibone->mNumWeights; numWeight++ )
+			{
+				if( aibone->mWeights[numWeight].mVertexId == k )
+				{
+					if( nbbones >= 4 )
+					{
+						continue;
+						//assert( nbbones < 4 );
+					}
+					bonesWeight[k][nbbones] = aibone->mWeights[numWeight].mWeight;
+
+					for( int boneIndex=0; boneIndex< BoneArray.size(); boneIndex++ )
+					{
+						if( strcmp( aibone->mName.C_Str(), BoneArray[boneIndex]->name ) == 0 )
+						{
+							bonesIndex[k][nbbones] = boneIndex;
+							break;
+						}
+					}
+
+					nbbones++;
+				}
+			}
+		}
+		verticeIndex++;
+	}
+
+	for( int k=0; k< mesh->mNumFaces; k++ )
+	{
+		aiFace face = mesh->mFaces[k];
+		for( int f=0; f<3; f++ )
+		{
+			int vertexIndex = face.mIndices[f];
+			vertexIndiceArray[vertexIndexNumber] = vertexIndex;
+			vertexIndexNumber++;
+		}
+	}
+
+	float* texCoordArray = new float[ mesh->mNumVertices * 2];
+	for( int i=0; i< mesh->mNumVertices; i++ )
+	{
+		aiVector3D uv = mesh->mTextureCoords[0][i]; // [0] -> texture index
+		texCoordArray[i*2] = uv.x;
+		texCoordArray[i*2+1] = uv.y;
+	}
+
+	glGenBuffers(1,&vertexBuffer);
+	glBindBuffer( GL_ARRAY_BUFFER, vertexBuffer );
+	glBufferData( GL_ARRAY_BUFFER, sizeof(vec3) * totalVertices, vertexPositionArray, GL_STATIC_DRAW );
+
+	glGenBuffers(1,&indicesBuffer);
+	glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, indicesBuffer );
+	glBufferData( GL_ELEMENT_ARRAY_BUFFER, sizeof(unsigned int) * nbTriangles * 3, vertexIndiceArray, GL_STATIC_DRAW );
+
+	glGenBuffers(1,&bonesIndexBuffer);
+	glBindBuffer( GL_ARRAY_BUFFER, bonesIndexBuffer );
+	glBufferData( GL_ARRAY_BUFFER, sizeof(ivec4) * totalVertices, bonesIndex, GL_STATIC_DRAW );
+
+	glGenBuffers(1,&bonesWeightBuffer);
+	glBindBuffer( GL_ARRAY_BUFFER, bonesWeightBuffer );
+	glBufferData( GL_ARRAY_BUFFER, sizeof(vec4) * totalVertices, bonesWeight, GL_STATIC_DRAW );
+
+	glGenBuffers(1,&normalBuffer);
+	glBindBuffer( GL_ARRAY_BUFFER, normalBuffer );
+	glBufferData( GL_ARRAY_BUFFER, sizeof(aiVector3D) * totalVertices, mesh->mNormals, GL_STATIC_DRAW );
+
+	glGenBuffers(1,&texCoordBuffer);
+	glBindBuffer( GL_ARRAY_BUFFER, texCoordBuffer);
+	glBufferData( GL_ARRAY_BUFFER, sizeof(float) * totalVertices * 2, texCoordArray, GL_STATIC_DRAW );
+
+}
+
+AnimatedMesh::~AnimatedMesh(void)
+{
+}
+
+void AnimatedMesh::Draw(Shader* shader)
+{	
+	shader->Draw( this );
+}
+
+
+SkeletalMesh::SkeletalMesh( Shader* s, const string& n, const aiScene* scene, Shader* fp ): Mesh(s,n,fp)
+{
+	// SKELETAL ANIMATION 
+	aiNode* rootnode = scene->mRootNode;
+	createSkeleton( rootnode , NULL);
+	rootBone->computeBinv();
+	
+	this->scene = scene;
+
+	const char* animationFile = "boblampclean.md5anim";
+	animScene = scene; //aiImportFile(animationFile, aiProcess_GenSmoothNormals  );
+	//animation = new MeshAnimation(animScene);
+	animationTime = 0.0f;
+	maxAnimationTime = animScene->mAnimations[0]->mDuration;
+	deltaAnim = maxAnimationTime / animScene->mAnimations[0]->mChannels[0]->mNumPositionKeys;
+
+	bonesMatrix = new mat4[BoneArray.size()];
+
+	// un mesh est compose de plusieurs sous-meshes MD5
+	for( int i=0; i< scene->mNumMeshes; i++ )
+	{
+		AnimatedMesh mesh( shader, scene->mMeshes[i], scene, BoneArray );
+		mMeshes.push_back(mesh);
+	}
+}
+
+
+void SkeletalMesh::createSkeleton( aiNode* node, Bone* parent )
+{
+	mat4 transfo;	
+	for( int i=0; i<4; i++ )
+	{
+		for( int j=0; j<4; j++ )
+		{
+			transfo[i][j] = node->mTransformation[i][j];
+		}
+	}
+
+	Bone* thisBone = new Bone( parent, transpose(transfo) );	
+	if(parent == NULL )
+		rootBone = thisBone;
+	
+	strcpy( thisBone->name, node->mName.C_Str() );
+	BoneArray.push_back(thisBone);
+
+	for( int i=0 ; i< node->mNumChildren; i++ )
+	{
+		createSkeleton( node->mChildren[i] , thisBone );
+	}
+}
+
+
+void SkeletalMesh::computeBonesMatrix( int meshIndex )
+{
+	// pour tous les bones du mesh calcule leur matrice :
+	for( int i=0; i<BoneArray.size(); i++ )
+	{
+		bonesMatrix[i] = mat4(1);
+	}
+	
+	aiMesh* mesh = scene->mMeshes[meshIndex];
+	for( int i=0; i< mesh->mNumBones; i++ )
+	{
+		aiBone* bone = mesh->mBones[i];
+		// trouve le Bone correspondant :
+		int boneIndex = -1;
+		for( int bi=0; bi<BoneArray.size(); bi++ )
+		{
+			if( strcmp( bone->mName.C_Str() , BoneArray[bi]->name ) == 0 )
+			{
+				boneIndex = bi;
+				break;
+			}
+		}
+		assert( boneIndex != -1 );
+
+		mat4 BINV;					
+		for( int ii=0; ii<4; ii++ )
+		{
+			for( int j=0; j<4; j++ )
+			{
+				BINV[ii][j] = bone->mOffsetMatrix[ii][j];
+			}
+		}
+
+		bonesMatrix[boneIndex] = BoneArray[boneIndex]->worldTransform * transpose(BINV);
+	}
+}
+
+void SkeletalMesh::Draw(Shader* s)
+{
+	SkeletalAnimationShader* shader = (SkeletalAnimationShader*) s;
+	
+	for( int meshIndex = 0; meshIndex < mMeshes.size(); meshIndex ++ )
+	{
+		computeBonesMatrix(meshIndex);
+		glUniformMatrix4fv(shader->uBonesMat->_location, BoneArray.size() , false, &(*bonesMatrix)[0][0] );
+		
+		shader->Draw( &mMeshes[meshIndex] );
+	}
+	shader->disable();
+}
+
+
+void SkeletalMesh::updateSkeleton(float dt)
+{
+	animationTime += dt;
+	if( animationTime >= maxAnimationTime-deltaAnim )
+		animationTime = 0.0f;
+
+	float T = animationTime / deltaAnim;
+	int frameA = (int) T;
+	int frameB = frameA + 1;
+	T = T - frameA;   // T in range [0;1] for interpolation between frames A and B.
+	assert( frameB < scene->mAnimations[0]->mChannels[0]->mNumPositionKeys );
+
+	for( int i=0; i< animScene->mAnimations[0]->mNumChannels; i++ )
+	{
+		aiNodeAnim* nodeAnim = scene->mAnimations[0]->mChannels[i];
+		// find the skeleton node with same name
+		Bone* bone = NULL;
+		for( int k=0; k< BoneArray.size(); k++ )
+		{
+			if( strcmp( BoneArray[k]->name, nodeAnim->mNodeName.C_Str() ) == 0 )
+			{
+				bone = BoneArray[k];
+			}
+		}
+		if( bone == NULL ) continue;
+
+		// interpolate position and rotation :
+		/*BoneAnimation& animA = bonesAnimations[boneIndex].animation[ frameA ];
+		BoneAnimation& animB = bonesAnimations[boneIndex].animation[ frameB ];
+
+		vec3 pos = T * (animA.position + animB.position ) - animB.position;
+		quat q = mix(animA.rotation, animB.rotation, T );
+		
+		mat4 translation = glm::translate( mat4(1.0), vec3(pos.x, pos.y, pos.z) );
+		mat4 rotation = toMat4(q);
+		CurrentBoneAnimation[boneIndex] = translation * rotation;
+		*/
+
+		
+		aiVector3D pA = nodeAnim->mPositionKeys[frameA].mValue;
+		aiVector3D pB = nodeAnim->mPositionKeys[frameB].mValue;
+		vec3 posA = vec3(pA.x, pA.y, pA.z );
+		vec3 posB = vec3(pB.x, pB.y, pB.z );
+
+		aiQuaternion rotA = nodeAnim->mRotationKeys[frameA].mValue;
+		Quaternion qA(rotA.x, rotA.y, rotA.z, rotA.w );
+		aiQuaternion rotB = nodeAnim->mRotationKeys[frameB].mValue;
+		Quaternion qB(rotB.x, rotB.y, rotB.z, rotB.w );
+	
+		vec3 pos = posA*T + posB*(1-T);
+		Quaternion q = qA; //slerp( T, qA, qB ); //mix(qA, qB, T );
+		
+
+		//mat4 translation = glm::translate( mat4(1.0), vec3(pos.x, pos.y, pos.z) );
+		
+		mat4 rotation = q.RotationMatrix();
+		mat4 translation = glm::translate( mat4(1.0), vec3(pos.x, pos.y, pos.z) );
+
+		mat4 transform = translation * rotation;
+		bone->localTransform = transform;
+	}
+	rootBone->recomputeWorldTransform();
+}
+
+
+void SkeletalMesh::Update( float dt )
+{
+	updateSkeleton(dt);
+}

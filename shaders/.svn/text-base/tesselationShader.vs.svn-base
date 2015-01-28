@@ -1,0 +1,18 @@
+#version 400
+
+in vec3 vertexPosition;
+out vec3 vPosition;
+
+uniform sampler2D HeightMap;
+
+void main()
+{
+	vPosition = vertexPosition;
+
+	vec2 coord = vec2(vertexPosition.x,vertexPosition.z);
+	float height = texture(HeightMap, coord ).r; // [0;1]
+    vPosition.y = 60.0f* (height-0.5f);
+
+	vPosition.x *= 256.0f;
+	vPosition.z *= 256.0f;
+}

@@ -1,0 +1,25 @@
+uniform mat4 ModelMatrix;
+uniform mat4 ViewMatrix;
+uniform mat4 ProjectionMatrix;
+
+in vec3  vertexPosition;
+in vec2  iTexCoord;
+
+varying vec2 uv;
+
+void main(void)
+{	
+  uv    = iTexCoord*vec2(1.0,1.0);
+
+	float size = 5.0;
+
+	vec3 pos = vec3(ViewMatrix * ModelMatrix * vec4(vertexPosition,1.0f) );
+
+	float3 corner_position = pos + size * vec3( uv.x-0.5, uv.y - 0.5, uv.x-0.5 );
+    
+	gl_Position = ProjectionMatrix * vec4(corner_position,1.0);  // eye space   
+
+
+
+} 
+ 

@@ -1,0 +1,228 @@
+#include "Shader.h"
+
+#include <iostream>
+#include <algorithm>
+using namespace std;
+
+#include "Uniform.h"
+
+Shader::Shader()
+{
+}
+
+void Shader::CompileProgram( const string& vertexSource, const string& fragmentSource )
+{
+	_program = compileProgram(vertexSource, "", fragmentSource);
+}
+
+void Shader::GetUniforms()
+{
+	// liste tous les uniform :
+	GLint nbUniforms = 0;
+	glGetProgramiv(_program,GL_ACTIVE_UNIFORMS,&nbUniforms);
+	cout<<nbUniforms<<" uniforms dans le shader"<<endl;
+
+	int textureIndex = 0;
+
+	for(int i=0; i< nbUniforms; i++ )
+	{
+		char uniformName[128];
+		GLint size;
+		GLenum type;
+		glGetActiveUniform(_program,  i,  128,  0,  &size,  &type,  uniformName);
+		
+		switch( type )
+		{
+			case GL_FLOAT:
+				{
+					Uniform* uniform = new UniformFloat(i,this);
+					_uniforms.insert( pair<string,Uniform*>(uniformName,uniform) );
+					break;
+				}
+			case GL_FLOAT_VEC3:
+				{
+					Uniform* uniform = new UniformVec3f(i,this);
+					_uniforms.insert( pair<string,Uniform*>(uniformName,uniform) );
+					break;
+				}
+			case GL_FLOAT_VEC4:
+				{
+					Uniform* uniform = new UniformVec4f(i,this);
+					_uniforms.insert( pair<string,Uniform*>(uniformName,uniform) );
+					break;
+				}
+
+			case GL_INT_VEC4:
+				{
+					Uniform* uniform = new UniformIVec4(i,this);
+					_uniforms.insert( pair<string,Uniform*>(uniformName,uniform) );
+					break;
+				}
+
+			case GL_SAMPLER_2D:
+				{
+					Uniform* uniform = new UniformSampler2D(i,textureIndex,this);
+					_uniforms.insert( pair<string,Uniform*>(uniformName,uniform) );
+					textureIndex++;
+					break;
+				}
+
+			case GL_SAMPLER_CUBE:
+				{
+					Uniform* uniform = new UniformSamplerCube(i,textureIndex,this);
+					_uniforms.insert( pair<string,Uniform*>(uniformName,uniform) );
+					textureIndex++;
+					break;
+				}
+
+				
+			case GL_FLOAT_MAT4:
+				{
+					Uniform* uniform = new UniformMat4f(i,this);
+					_uniforms.insert( pair<string,Uniform*>(uniformName,uniform) );
+					break;
+				}
+			
+			case GL_FLOAT_MAT3:
+				{
+					Uniform* uniform = new UniformMat3f(i,this);
+					_uniforms.insert( pair<string,Uniform*>(uniformName,uniform) );
+					break;
+				}
+                        
+			default:
+				cout<<"type non pris en compte pour "<<uniformName<<endl;
+		}
+	}
+}
+
+bool Shader::LoadShaderFromFile( const string& vertexSource, const string& fragmentSource )
+{
+	CompileProgram(vertexSource, fragmentSource);
+	GetUniforms();
+	return true;
+}
+
+Shader::~Shader()
+{
+}
+
+
+void Shader::enable()
+{
+	glUseProgram(_program);
+}
+
+void Shader::disable()
+{
+	glUseProgram(0);
+}
+
+Uniform* Shader::GetUniformByName(const string& name)
+{
+	auto it = _uniforms.find(name);
+	return (it != _uniforms.end()) ? (*it).second : 0;
+}
+
+void Shader::Clean()
+{
+	for_each(_dirtyUniform.begin(), _dirtyUniform.end(), mem_fun(&ICleanable::Clean));
+	_dirtyUniform.clear();
+}
+
+void Shader::NotifyDirty(ICleanable *value)
+{
+	_dirtyUniform.push_back(value);
+}
+
+GLuint Shader::checkCompileStatus(GLuint shader, GLint *status)
+{
+    glGetShaderiv(shader, GL_COMPILE_STATUS, status);
+    if (!(*status)) {
+         char log[2048];
+         int len;
+         glGetShaderInfoLog(shader, 2048, (GLsizei*)&len, log);
+         printf("Error: shader(%04d), Info log: %s\n", (int)shader, log);
+         glDeleteShader(shader);
+         return 0;
+    }
+    return 1;
+}
+
+GLuint Shader::compileProgram(const string& vsource, const string& gsource, const string& fsource)
+{
+	bool checkStatusAnyway = false;
+
+    GLuint vertexShader   = glCreateShader(GL_VERTEX_SHADER);
+    GLuint fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
+
+    GLint compiled = 0;
+
+	const char* verterChar = vsource.c_str();
+	const char* fragChar = fsource.c_str();
+
+    glShaderSource(vertexShader, 1, &verterChar, 0);
+    glShaderSource(fragmentShader, 1, &fragChar, 0);
+    
+    glCompileShader(vertexShader);
+    if (checkStatusAnyway || checkCompileStatus(vertexShader, &compiled) == 0) {
+       printf("<compileProgram compilation error with vertexShader>:\n");
+       printf("%s\n", vsource.c_str());
+	   system("pause");
+       //return 0;
+    }
+
+    glCompileShader(fragmentShader);
+    if (checkStatusAnyway || checkCompileStatus(fragmentShader, &compiled) == 0) {
+       printf("<compileProgram compilation error with fragmentShader>:\n");
+       printf("%s\n", fsource);
+	    system("pause");
+       //return 0;
+    }
+
+    GLuint program = glCreateProgram();
+
+    glAttachShader(program, vertexShader);
+    glAttachShader(program, fragmentShader);
+
+/*  if (gsource.size() > 0) {
+        GLuint geomShader = glCreateShader(GL_GEOMETRY_SHADER_EXT);
+        glShaderSource(geomShader, 1, &gsource, 0);
+        glCompileShader(geomShader);
+        glGetShaderiv(geomShader, GL_COMPILE_STATUS, (GLint*)&compiled);
+        if (checkStatusAnyway || checkCompileStatus(geomShader, &compiled) == 0) {
+           printf("<compileProgram compilation error with geomShader>:\n");
+           printf("%s\n", gsource);
+		    system("pause");
+           //return 0;
+        }
+
+        glAttachShader(program, geomShader);
+
+        glProgramParameteriEXT(program, GL_GEOMETRY_INPUT_TYPE_EXT, gsInput);
+        glProgramParameteriEXT(program, GL_GEOMETRY_OUTPUT_TYPE_EXT, gsOutput); 
+        glProgramParameteriEXT(program, GL_GEOMETRY_VERTICES_OUT_EXT, 4); 
+    }
+*/
+	//if( gsource )
+	//{
+	//	glBindFragDataLocation( program, 0 , "oColor" );
+	//}
+    glLinkProgram(program);
+
+    // check if program linked
+    GLint success = 0;
+    glGetProgramiv(program, GL_LINK_STATUS, &success);
+
+    if (!success) {
+        char temp[2048];
+        glGetProgramInfoLog(program, 2048, 0, temp);
+        fprintf(stderr, "Failed to link program:\n%s\n", temp);
+        glDeleteProgram(program);
+		 system("pause");
+        program = 0;
+        exit(-1);
+    }
+
+    return program;
+}

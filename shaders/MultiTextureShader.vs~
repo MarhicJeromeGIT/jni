@@ -1,0 +1,41 @@
+#define NBTEXTURES 2
+
+uniform mat4 ModelMatrix;
+uniform mat4 ViewMatrix;
+uniform mat4 ProjectionMatrix;
+uniform mat4 LightMat;
+uniform mat3 NormalMatrix;
+
+in vec3  textureWeight;
+in vec3  normal;
+in vec3  vertexPosition;
+in vec2  iTexCoord[NBTEXTURES];
+
+varying vec2 texCoord[NBTEXTURES];
+varying vec4 PosFromLightPOV;
+varying vec3 interpolatedVertexEye;
+
+uniform vec3 lightPosition;
+varying float diffuseAmount;
+
+varying vec3 textureWeight;
+
+void main(void)
+{	
+	textureWeight = iTextureWeight;
+	
+	// Transform the normal into eye space
+	vec3 normalDir = normalize( NormalMatrix * normal );
+  vec4 eyeCoords = ViewMatrix * ModelMatrix * vec4(vertexPosition,1.0);
+  // lightPosition est passee en eyeSpace
+  vec3 lightDir = normalize(lightPosition.xyz);
+	diffuseAmount = max(0.0, dot(normalDir, lightDir) );
+
+  texCoord[0]        = iTexCoord[0];
+  texCoord[1]        = iTexCoord[1];
+	PosFromLightPOV  = LightMat * ModelMatrix * vec4(vertexPosition,1.0);
+  gl_Position      = ProjectionMatrix * eyeCoords;
+
+	interpolatedVertexEye = vec3( ModelMatrix * vec4(vertexPosition,1.0) );
+} 
+ 

@@ -1,0 +1,25 @@
+#version 150
+
+uniform vec4 clipPlane;
+varying vec3 interpolatedVertexEye;
+
+float LinearizeDepth()
+{
+  float n = 1.0; // camera z near
+  float f = 1000.0; // camera z far
+  float z = gl_FragCoord.z;
+  return (2.0 * n) / (f + n - z * (f - n));	
+}
+
+void main()
+{
+	float clipPos = dot (interpolatedVertexEye, clipPlane.xyz) + clipPlane.w;
+	if (clipPos < 0.0) {
+		  discard;
+	}	
+
+	float d = LinearizeDepth();
+	gl_FragColor = vec4(d,d,d,1.0);
+}
+
+          

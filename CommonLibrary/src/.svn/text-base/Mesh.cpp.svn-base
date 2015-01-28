@@ -1,0 +1,11 @@
+#include "Mesh.h"
+
+
+Mesh::Mesh(Shader* s,const std::string& n, Shader* fp) : name(n), shader(s), firstPass(fp)
+{
+}
+
+
+Mesh::~Mesh(void)
+{
+}

@@ -1,0 +1,67 @@
+#include "MeshAnimation.h"
+#include <assimp/assimp.h>
+#include <assimp/aiScene.h>
+#include <assimp/aiPostProcess.h>
+#include <glm/gtc/matrix_transform.hpp> 
+#include <glm/gtx/quaternion.hpp> 
+
+MeshAnimation::MeshAnimation( const aiScene* animScene )
+{
+	animationTime = 0.0f;
+	maxAnimationTime = animScene->mAnimations[0]->mDuration;
+	nbBones = animScene->mAnimations[0]->mNumChannels;
+	CurrentBoneAnimation = new glm::mat4[nbBones];
+
+	for( unsigned int boneIndex=0; boneIndex< animScene->mAnimations[0]->mNumChannels; boneIndex++ )
+	{
+		aiNodeAnim* nodeAnim = animScene->mAnimations[0]->mChannels[boneIndex];
+		AnimatedBone Bone;
+		
+		for( unsigned int i=0; i< nodeAnim->mNumPositionKeys; i++ )
+		{
+			aiVector3D pos = nodeAnim->mPositionKeys[i].mValue;
+			aiQuaternion rot = nodeAnim->mRotationKeys[i].mValue;
+			BoneAnimation anim;
+			anim.position = vec3( pos.x, pos.y, pos.z );
+			anim.rotation = quat(rot.x, rot.y, rot.z, rot.w );
+			Bone.animation.push_back( anim );
+		}
+		bonesAnimations.push_back( Bone );
+		CurrentBoneAnimation[boneIndex] = mat4(1.0);
+	}
+
+	deltaAnim = maxAnimationTime / (float) bonesAnimations[0].animation.size();
+}
+
+
+MeshAnimation::~MeshAnimation(void)
+{
+}
+
+void MeshAnimation::update( float dt )
+{
+	animationTime += dt;
+	if( animationTime >= maxAnimationTime-dt )
+		animationTime = 0.0f;
+
+	float T = animationTime / deltaAnim;
+	int frameA = (int) T;
+	int frameB = frameA + 1;
+	T = T - frameA;   // T in range [0;1] for interpolation between frames A and B.
+	assert( frameB < bonesAnimations[0].animation.size() );
+
+
+	for( int boneIndex=0; boneIndex< nbBones; boneIndex++ )
+	{
+		// interpolate position and rotation :
+		BoneAnimation& animA = bonesAnimations[boneIndex].animation[ frameA ];
+		BoneAnimation& animB = bonesAnimations[boneIndex].animation[ frameB ];
+
+		vec3 pos = T * (animA.position + animB.position ) - animB.position;
+		quat q = mix(animA.rotation, animB.rotation, T );
+		
+		mat4 translation = glm::translate( mat4(1.0), vec3(pos.x, pos.y, pos.z) );
+		mat4 rotation = toMat4(q);
+		CurrentBoneAnimation[boneIndex] = translation * rotation;
+	}
+}

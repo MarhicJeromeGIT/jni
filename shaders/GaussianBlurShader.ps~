@@ -1,0 +1,42 @@
+
+uniform sampler2D tex;
+uniform bool isVerticalPass;
+
+varying vec2 texCoord;
+
+void main()
+{
+	float dx = 1.5/1024.0;
+	float dy = 1.5/1024.0;
+
+	vec2 center = texCoord;
+	
+	vec4 sum = vec4(0.0);
+	if( isVerticalPass )
+	{
+    // weights : http://www.gamerendering.com/2008/10/11/gaussian-blur-filter-shader/
+		sum += texture2D( tex, center + vec2(0,dy) * -4.0  )* 0.05;
+		sum += texture2D( tex, center + vec2(0,dy) * -3.0  )* 0.09;
+		sum += texture2D( tex, center + vec2(0,dy) * -2.0  )* 0.12;
+		sum += texture2D( tex, center + vec2(0,dy) * -1.0  )* 0.15;
+		sum += texture2D( tex, center + vec2(0,dy) *  0.0  )* 0.18;
+		sum += texture2D( tex, center + vec2(0,dy) *  1.0  )* 0.15;
+		sum += texture2D( tex, center + vec2(0,dy) *  2.0  )* 0.12;
+		sum += texture2D( tex, center + vec2(0,dy) *  3.0  )* 0.09;
+		sum += texture2D( tex, center + vec2(0,dy) *  4.0  )* 0.05;
+	}
+	else
+	{
+		sum += texture2D( tex, center + vec2(dx,0) * -4.0  )* 0.05;
+		sum += texture2D( tex, center + vec2(dx,0) * -3.0  )* 0.09;
+		sum += texture2D( tex, center + vec2(dx,0) *  2.0  )* 0.12;
+		sum += texture2D( tex, center + vec2(dx,0) * -1.0  )* 0.15;
+		sum += texture2D( tex, center + vec2(dx,0) *  0.0  )* 0.18;
+		sum += texture2D( tex, center + vec2(dx,0) *  1.0  )* 0.15;
+		sum += texture2D( tex, center + vec2(dx,0) *  2.0  )* 0.12;
+		sum += texture2D( tex, center + vec2(dx,0) *  3.0  )* 0.09;
+		sum += texture2D( tex, center + vec2(dx,0) *  4.0  )* 0.05;
+	}
+	
+	gl_FragColor = sum;
+}

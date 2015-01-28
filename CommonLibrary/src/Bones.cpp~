@@ -1,0 +1,143 @@
+#include "Bones.h"
+#include <glm/gtc/matrix_transform.hpp> 
+#include <GL/glew.h>
+#include "mathematiques.h"
+
+Bone::Bone( Bone* p, const vec3& o, const vec3& r)
+{
+	if( p != NULL )
+		p->addChild(this);
+
+    offset = o;
+    rotation = r;
+    position = vec4(0);
+ 	parent = p;
+
+	//color = vec3(randf(),randf(),randf());
+	color = vec3(0,0,1);
+
+	localTransform = mat4(1.0);
+	// rotate + translate
+	localTransform *= glm::rotate(localTransform, rotation.x, vec3(1,0,0) );
+	localTransform *= glm::rotate(localTransform, rotation.y, vec3(0,1,0) );
+	localTransform *= glm::rotate(localTransform, rotation.z, vec3(0,0,1) );
+	localTransform *= glm::translate(  glm::mat4(1.0f), offset );
+
+	computeWorldTransform();
+	computeBinv();
+}
+
+Bone::Bone( Bone* p, const mat4& transform)
+{
+	if( p != NULL )
+		p->addChild(this);
+
+    position = vec4(0);
+ 	parent = p;
+
+	//color = vec3(randf(),randf(),randf());
+	color = vec3(0,0,1);
+
+	localTransform = transform;
+	computeWorldTransform();
+	computeBinv();
+}
+
+void Bone::computeWorldTransform()
+{
+    if( parent != NULL )
+    {
+        worldTransform = parent->worldTransform * localTransform;
+    }
+    else
+    {
+        worldTransform = localTransform;
+    }
+}
+
+void Bone::computeBinv()
+{
+	Binv = inverse(worldTransform);
+	for(int i=0; i<childs.size(); i++ )
+    {
+        childs[i]->computeBinv();
+    }
+}
+
+void Bone::draw()
+{	
+//	computeWorldTransform();
+
+	glColor3f(0,1,0);
+	mat4 current;
+	glGetFloatv(GL_MODELVIEW_MATRIX, &current[0][0] );
+	
+	current = transpose(current);
+	vec4 pos1 = current * vec4(0,0,0,1);
+
+	current  =  localTransform * current;
+	vec4 pos2 = current * vec4(0,0,0,1);
+
+	glBegin(GL_LINES);
+	glVertex3f(pos1.x,pos1.y,pos1.z);
+	glVertex3f(pos2.x,pos2.y,pos2.z);
+	glEnd();
+
+
+	glPushMatrix();
+		
+	glColor3f(color.x,color.y,color.z);
+	glMultMatrixf(&localTransform[0][0] );
+	glBegin(GL_POINTS);
+	glVertex3f(0,0,0);
+	glEnd();
+
+    // draw childs :
+    for(int i=0; i<childs.size(); i++ )
+    {
+        childs[i]->draw();
+    }
+
+	glPopMatrix();
+
+	// fonctionne.
+	/*
+	glPushMatrix();
+	glLoadIdentity();	
+		gluLookAt(0.0f,5.0f,100.0f,
+			  0,5,0,
+			  0.f,1.f,0.f);
+
+	glColor3f(1,0,0);
+	glMultMatrixf(&worldTransform[0][0] );
+	glBegin(GL_POINTS);
+	glVertex3f(0,0,0);
+	glEnd();
+	glPopMatrix();
+	*/
+}
+
+void Bone::addChild( Bone* child )
+{ 
+      childs.push_back(child);
+}
+
+void Bone::setBonePosition( vec3 pos )
+{
+	vec4 pos4(pos,1.0);
+	for( int i=0; i< 4; i++ )
+	{
+		localTransform[3][i] = pos4[i];
+	}
+
+}
+
+void Bone::recomputeWorldTransform()
+{
+	computeWorldTransform();
+	 // draw childs :
+    for(int i=0; i<childs.size(); i++ )
+    {
+        childs[i]->recomputeWorldTransform();
+    }
+}

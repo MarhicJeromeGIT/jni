@@ -1,0 +1,66 @@
+#define MAX_MESH_BONES 50
+
+uniform vec4 LightPos; // en world space
+uniform mat4 ModelMatrix;
+uniform mat4 ViewMatrix;
+uniform mat4 ProjectionMatrix;
+uniform mat3 NormalMatrix;
+uniform mat4 uBonesMatrix[MAX_MESH_BONES];
+
+attribute vec3  vertexPosition, vertexNormal;
+attribute vec4  bonesIndex;
+attribute vec4  bonesWeight;
+attribute vec2  vertexTexCoord;
+
+varying vec3 Normal, LightDir, EyeVec;
+varying vec2 texCoord;
+varying vec3 interpolatedVertexEye;
+varying vec4 vertex_pos;
+
+#ifdef USE_CUBEMAP
+	varying vec3 pos_eye;
+	varying vec3 n_eye;
+	varying mat4 invviewmat;
+#endif
+
+
+void main(void)
+{	
+	mat4 ModelViewMatrix = ViewMatrix * ModelMatrix;
+	int x = int(bonesIndex.x);
+	int y = int(bonesIndex.y);
+	int z = int(bonesIndex.z);
+	int w = int(bonesIndex.w);
+	mat4 BoneTransform = uBonesMatrix[ x ] * bonesWeight.x;
+	BoneTransform += uBonesMatrix[ y ] * bonesWeight.y;
+	BoneTransform += uBonesMatrix[ z ] * bonesWeight.z;
+	BoneTransform += uBonesMatrix[ w ] * bonesWeight.w;
+
+	mat3 NormalMat = ( mat3( (ViewMatrix*ModelMatrix*BoneTransform) ) );
+
+	//mat4 normalMatrix2 = ModelViewMatrix * BoneTransform;
+	//mat3 normalMatrix3 = mat3( inverse(normalMatrix2) );
+	Normal = NormalMat * vertexNormal + NormalMatrix * 0.0001 * vertexNormal;
+	//Normal =  NormalMatrix * vertexNormal;
+	
+	vec4 vertex_transform = BoneTransform *  vec4(vertexPosition,1.0 );
+	vertex_pos = ModelViewMatrix * vertex_transform;
+	
+	LightDir = vec3(ViewMatrix * LightPos);
+	EyeVec = -vec3(vertex_pos);
+	//texCoord = vertexTexCoord;
+
+  gl_Position =  ProjectionMatrix * vertex_pos;
+
+	texCoord = vertexTexCoord;
+
+	interpolatedVertexEye = vec3( ModelMatrix * vec4(vertexPosition,1.0 ) );
+
+#ifdef USE_CUBEMAP
+  invviewmat = inverse(ViewMatrix);
+	pos_eye = vertex_pos;
+	n_eye = Normal;
+#endif
+
+}
+

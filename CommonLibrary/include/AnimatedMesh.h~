@@ -1,0 +1,74 @@
+#pragma once
+
+#include "StaticMesh.h"
+#include <vector>
+using namespace std;
+#include "Mesh.h"
+#include <glm.hpp>
+
+#include "MeshAnimation.h"
+
+class aiScene;
+class Bone;
+class aiNode;
+class StaticMeshShader;
+class SkeletalAnimationShader;
+class SkeletalMesh;
+class SkinningShader;
+
+// not to be used directly ! Use below "SkeletalMesh"
+class AnimatedMesh : public Mesh
+{
+	friend class SkeletalMesh;
+public:
+	int totalVertices;
+	int nbTriangles;
+
+	GLuint vertexBuffer;
+	GLuint texCoordBuffer;
+	GLuint indicesBuffer;
+
+	GLuint bonesIndexBuffer;
+	GLuint bonesWeightBuffer;
+	GLuint normalBuffer;
+
+	TextureGL* texture;
+
+	AnimatedMesh(Shader* shader);
+	AnimatedMesh(Shader* shader, aiMesh* mesh, const aiScene* scene, const vector<Bone*>& BoneArray, Shader* firstPass = 0);
+	~AnimatedMesh(void);
+
+	void Draw(Shader* shader);
+};
+
+// skeletal animation
+class SkeletalMesh : public Mesh
+{
+private:
+	glm::mat4* bonesMatrix; // devrait etre gere par quelqu'un d'autre...
+	const aiScene* scene;
+	
+	const aiScene* animScene;
+	vector<Bone*> BoneArray;
+	Bone* rootBone;
+
+	vector<AnimatedMesh> mMeshes;
+
+	//MeshAnimation* animation;
+	float animationTime;
+	float maxAnimationTime;
+	float deltaAnim; // dt between two keys, Ill assume it's always uniform for now
+
+
+public:
+	SkeletalMesh(Shader* shader) : Mesh(shader, "" ){}
+	SkeletalMesh(Shader* shader, const string& name, const aiScene* scene , Shader* firstPass = 0);
+
+	void createSkeleton( aiNode* node, Bone* parent );
+	void computeBonesMatrix( int meshIndex );
+	void updateSkeleton(float dt);
+
+	void Draw( Shader* shader );
+
+	void Update( float dt );
+};

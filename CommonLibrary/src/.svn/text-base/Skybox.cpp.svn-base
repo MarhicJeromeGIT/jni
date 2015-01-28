@@ -1,0 +1,77 @@
+#include "Skybox.h"
+#include "tga.h"
+#include "ShaderList.h"
+#include <glm/gtc/matrix_transform.hpp> 
+
+// http://ogldev.atspace.co.uk/www/tutorial25/tutorial25.html
+
+static const GLenum types[6] = {  GL_TEXTURE_CUBE_MAP_POSITIVE_X,
+                                  GL_TEXTURE_CUBE_MAP_NEGATIVE_X,
+                                  GL_TEXTURE_CUBE_MAP_POSITIVE_Y,
+                                  GL_TEXTURE_CUBE_MAP_NEGATIVE_Y,
+                                  GL_TEXTURE_CUBE_MAP_POSITIVE_Z,
+                                  GL_TEXTURE_CUBE_MAP_NEGATIVE_Z };
+
+Skybox::Skybox(Shader* s, const string& name, aiMesh* cube, 
+	const string& Directory, const string& PosXFilename, const string& NegXFilename, const string& PosYFilename,
+        const string& NegYFilename,  const string& PosZFilename,  const string& NegZFilename) : StaticMesh(s, name )
+{
+	  LoadMesh(cube);
+
+    string::const_iterator it = Directory.end();
+    it--;
+    string BaseDir = (*it == '/') ? Directory : Directory + "/";
+    
+    m_fileNames[0] = BaseDir + PosXFilename;
+    m_fileNames[1] = BaseDir + NegXFilename;
+    m_fileNames[2] = BaseDir + PosYFilename;
+    m_fileNames[3] = BaseDir + NegYFilename;
+    m_fileNames[4] = BaseDir + PosZFilename;
+    m_fileNames[5] = BaseDir + NegZFilename;
+    
+    glGenTextures(1, &m_textureObj);
+    glBindTexture(GL_TEXTURE_CUBE_MAP, m_textureObj);
+
+    for (unsigned int i = 0 ; i < 6 ; i++) {
+       
+		int width, height, bpp;
+		unsigned char* data = readTGA(m_fileNames[i].c_str(), width, height, bpp);
+		assert(data != 0 );
+       
+        glTexImage2D(types[i], 0, GL_RGB, width, height, 0, GL_RGBA,
+            GL_UNSIGNED_BYTE, data);
+
+        delete data;
+    }
+
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+
+}
+
+
+Skybox::~Skybox(void)
+{
+}
+
+void Skybox::Draw( Shader* s )
+{
+	SkyboxShader* shader = (SkyboxShader*) s;
+
+	shader->uCubeMapSampler->setValue( m_textureObj );
+
+	shader->Clean();
+
+	// dessine le mesh :			
+	glBindBuffer( GL_ARRAY_BUFFER, vertexBuffer );
+	glVertexAttribPointer( shader->vertexAttribLoc, 3, GL_FLOAT, GL_FALSE, 0, 0);
+
+	glBindBuffer( GL_ARRAY_BUFFER, texCoordBuffer ); 
+	glVertexAttribPointer( shader->texCoordAttribLoc, 2, GL_FLOAT, GL_FALSE, 0,0 );
+
+	glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, indicesBuffer );
+	glDrawElements( GL_TRIANGLES, nbTriangles * 3, GL_UNSIGNED_INT, 0 );
+}

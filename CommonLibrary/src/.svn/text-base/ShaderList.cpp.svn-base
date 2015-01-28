@@ -1,0 +1,470 @@
+#include "ShaderList.h"
+
+#include "fichiers.h"
+#include "AnimatedMesh.h"
+#include "AntigravityConfig.h"
+
+SkeletalAnimationShader::SkeletalAnimationShader() : Shader()
+{
+	// location pour les attributes du skinning vertex shader
+	int vertexAttribLoc      = 0;
+	int normalAttribLoc      = 0;
+	int texCoordAttribLoc    = 0;
+	int	bonesIndexAttribLoc  = 0;
+	int	bonesWeightAttribLoc = 0;
+}
+
+void SkeletalAnimationShader::enable()
+{
+	Shader::enable();
+	glEnableVertexAttribArray(vertexAttribLoc);
+	glEnableVertexAttribArray(bonesIndexAttribLoc);
+	glEnableVertexAttribArray(bonesWeightAttribLoc);
+	glEnableVertexAttribArray(normalAttribLoc);
+	glEnableVertexAttribArray(texCoordAttribLoc);
+}
+
+void SkeletalAnimationShader::disable()
+{	
+	glDisableVertexAttribArray(vertexAttribLoc);
+	glDisableVertexAttribArray(bonesIndexAttribLoc);
+	glDisableVertexAttribArray(bonesWeightAttribLoc);
+	glDisableVertexAttribArray(normalAttribLoc);
+	glDisableVertexAttribArray(texCoordAttribLoc);
+	Shader::disable();
+}
+
+//*****************************************************
+// SKINNING SHADER
+//
+//*****************************************************
+
+SkinningShader::SkinningShader(void) : SkeletalAnimationShader()
+{
+	string vs = readFile( shader_path "skinningshader.vs" );
+	string ps = readFile( shader_path "skinning_shader.ps" );
+	LoadShaderFromFile(vs,ps);
+
+	uModelMat = (UniformMat4f*) GetUniformByName("ModelMatrix");
+	assert(uModelMat != 0);
+
+	uViewMat = (UniformMat4f*) GetUniformByName("ViewMatrix");
+	assert(uViewMat != 0);
+
+	uProjectionMat = (UniformMat4f*) GetUniformByName("ProjectionMatrix");
+	assert(uProjectionMat != 0);
+
+	uNormalMat = (UniformMat3f*) GetUniformByName("NormalMatrix");
+	assert(uNormalMat != 0);
+
+	uLightPos = (UniformVec3f*) GetUniformByName("LightPos");
+	assert(uLightPos != 0);
+
+	uTexture = (UniformSampler2D*) GetUniformByName("tex");
+	assert(uTexture != 0);
+
+	uBonesMat = (UniformMat4f*) GetUniformByName( "uBonesMatrix[0]" ); // OU "uBonesMatrix"
+	assert(uBonesMat != 0);
+
+	vertexAttribLoc      = glGetAttribLocation( getProgram(), "vertexPosition" );
+	bonesIndexAttribLoc  = glGetAttribLocation( getProgram(), "bonesIndex" );
+	bonesWeightAttribLoc = glGetAttribLocation( getProgram(), "bonesWeight" );
+	normalAttribLoc      = glGetAttribLocation( getProgram(), "vertexNormal" );
+	texCoordAttribLoc    = glGetAttribLocation( getProgram(), "vertexTexCoord" );
+}
+
+
+SkinningShader::~SkinningShader(void)
+{
+}
+
+void SkinningShader::Draw( Mesh* m )
+{
+	AnimatedMesh* mesh = (AnimatedMesh*) m;
+
+	uTexture->setValue( mesh->texture->getTexId() );
+	Clean();
+
+	glBindBuffer( GL_ARRAY_BUFFER, mesh->vertexBuffer );
+	glVertexAttribPointer( vertexAttribLoc, 3, GL_FLOAT, GL_FALSE, 0, 0);
+
+	glBindBuffer( GL_ARRAY_BUFFER, mesh->bonesIndexBuffer ); 	// /!\ attribIpointer parce qu'on passe des indices (int) !
+	glVertexAttribIPointer( bonesIndexAttribLoc, 4, GL_INT, 0, 0);
+
+	glBindBuffer( GL_ARRAY_BUFFER, mesh->bonesWeightBuffer );
+	glVertexAttribPointer( bonesWeightAttribLoc, 4, GL_FLOAT, GL_FALSE, 0, 0);
+
+	glBindBuffer( GL_ARRAY_BUFFER, mesh->normalBuffer );
+	glVertexAttribPointer( normalAttribLoc, 3, GL_FLOAT, GL_FALSE, 0, 0);
+	
+	glBindBuffer( GL_ARRAY_BUFFER, mesh->texCoordBuffer ); 
+	glVertexAttribPointer( texCoordAttribLoc, 2, GL_FLOAT, GL_FALSE, 0,0 );
+
+	glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, mesh->indicesBuffer );
+	glDrawElements( GL_TRIANGLES, mesh->nbTriangles * 3, GL_UNSIGNED_INT, 0 );
+}
+
+//*****************************************************
+// SKINNED SHADOW MAP GENERATOR SHADER
+//
+//*****************************************************
+
+ShadowMapShader::ShadowMapShader(void) : SkeletalAnimationShader()
+{
+	string vs = readFile( shader_path "shadowmap_shader.vs" );
+	string ps = readFile( shader_path "dummy_shader.ps" );
+	LoadShaderFromFile(vs,ps);
+
+	uModelMat = (UniformMat4f*) GetUniformByName("ModelMatrix");
+	assert(uModelMat != 0);
+
+	uViewMat = (UniformMat4f*) GetUniformByName("ViewMatrix");
+	assert(uViewMat != 0);
+
+	uProjectionMat = (UniformMat4f*) GetUniformByName("ProjectionMatrix");
+	assert(uProjectionMat != 0);
+
+	uBonesMat = (UniformMat4f*) GetUniformByName( "uBonesMatrix[0]" ); // OU "uBonesMatrix"
+	assert(uBonesMat != 0);
+
+	vertexAttribLoc      = glGetAttribLocation( getProgram(), "vertexPosition" );
+	bonesIndexAttribLoc  = glGetAttribLocation( getProgram(), "bonesIndex" );
+	bonesWeightAttribLoc = glGetAttribLocation( getProgram(), "bonesWeight" );
+}
+
+
+ShadowMapShader::~ShadowMapShader(void)
+{
+}
+
+void ShadowMapShader::Draw( Mesh* m )
+{
+	AnimatedMesh* mesh = (AnimatedMesh*) m;
+	Clean();
+
+	glBindBuffer( GL_ARRAY_BUFFER, mesh->vertexBuffer );
+	glVertexAttribPointer( vertexAttribLoc, 3, GL_FLOAT, GL_FALSE, 0, 0);
+
+	glBindBuffer( GL_ARRAY_BUFFER, mesh->bonesIndexBuffer ); 	// /!\ attribIpointer parce qu'on passe des indices (int) !
+	glVertexAttribIPointer( bonesIndexAttribLoc, 4, GL_INT, 0, 0);
+
+	glBindBuffer( GL_ARRAY_BUFFER, mesh->bonesWeightBuffer );
+	glVertexAttribPointer( bonesWeightAttribLoc, 4, GL_FLOAT, GL_FALSE, 0, 0);
+
+	glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, mesh->indicesBuffer );
+	glDrawElements( GL_TRIANGLES, mesh->nbTriangles * 3, GL_UNSIGNED_INT, 0 );
+}
+
+//*****************************************************
+// STATIC MESH WITH VBO SHADER
+//
+//*****************************************************
+
+StaticMeshShader::StaticMeshShader(void) : Shader()
+{
+	vertexAttribLoc   = 0;
+}
+
+StaticMeshShader::~StaticMeshShader(void)
+{
+}
+
+void StaticMeshShader::enable()
+{
+	Shader::enable();
+	glEnableVertexAttribArray(vertexAttribLoc);
+	glEnableVertexAttribArray(texCoordAttribLoc);
+}
+
+void StaticMeshShader::disable()
+{
+	glDisableVertexAttribArray(texCoordAttribLoc);
+	glDisableVertexAttribArray(vertexAttribLoc);
+	Shader::disable();
+}
+
+SimpleStaticMeshShader::SimpleStaticMeshShader() : StaticMeshShader()
+{
+	string vs = readFile( shader_path "staticMeshShader.vs" );
+	string ps = readFile( shader_path "staticMeshShader.ps" );
+	LoadShaderFromFile(vs,ps);
+
+	uModelMat = (UniformMat4f*) GetUniformByName("ModelMatrix");
+	assert(uModelMat != 0);
+
+	uViewMat = (UniformMat4f*) GetUniformByName("ViewMatrix");
+	assert(uViewMat != 0);
+
+	uProjectionMat = (UniformMat4f*) GetUniformByName("ProjectionMatrix");
+	assert(uProjectionMat != 0);
+
+	uTextureSampler = (UniformSampler2D*) GetUniformByName("tex");
+	assert(uTextureSampler != 0);
+
+	vertexAttribLoc   = glGetAttribLocation( getProgram(), "vertexPosition" );
+	texCoordAttribLoc = glGetAttribLocation( getProgram(), "iTexCoord" );
+}
+
+SimpleStaticMeshShader::~SimpleStaticMeshShader()
+{
+}
+
+void SimpleStaticMeshShader::Draw( Mesh* m )
+{
+	StaticMesh* mesh = (StaticMesh*) m;
+
+	uTextureSampler->setValue( mesh->texture->getTexId() );
+	Clean();
+
+	glBindBuffer( GL_ARRAY_BUFFER, mesh->vertexBuffer );
+	glVertexAttribPointer( vertexAttribLoc, 3, GL_FLOAT, GL_FALSE, 0, 0);
+
+	glBindBuffer( GL_ARRAY_BUFFER, mesh->texCoordBuffer ); 
+	glVertexAttribPointer( texCoordAttribLoc, 2, GL_FLOAT, GL_FALSE, 0,0 );
+
+	glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, mesh->indicesBuffer );
+	glDrawElements( GL_TRIANGLES, mesh->nbTriangles * 3, GL_UNSIGNED_INT, 0 );
+}
+
+
+//*****************************************************
+// TEXTURE SHADER + eclairage diffus
+//
+//*****************************************************
+
+LightStaticMeshShader::LightStaticMeshShader() : StaticMeshShader()
+{
+	string vs = readFile( shader_path "lightstaticMeshShader.vs" );
+	string ps = readFile( shader_path "lightstaticMeshShader.ps" );
+	LoadShaderFromFile(vs,ps);
+
+	uModelMat = (UniformMat4f*) GetUniformByName("ModelMatrix");
+	assert(uModelMat != 0);
+
+	uViewMat = (UniformMat4f*) GetUniformByName("ViewMatrix");
+	assert(uViewMat != 0);
+
+	uProjectionMat = (UniformMat4f*) GetUniformByName("ProjectionMatrix");
+	assert(uProjectionMat != 0);
+
+	uNormalMat = (UniformMat3f*) GetUniformByName("NormalMatrix");
+	assert(uNormalMat != 0);
+
+	uTextureSampler = (UniformSampler2D*) GetUniformByName("tex");
+	assert(uTextureSampler != 0);
+
+	uLightPos = (UniformVec3f*) GetUniformByName("LightPos");
+	assert(uLightPos != 0);
+
+	uClipPlane = (UniformVec4f*) GetUniformByName("clipPlane");
+	assert(uClipPlane != 0);
+
+//	uClipMat = (UniformMat4f*) GetUniformByName("clippingMat");
+//	assert(uClipMat != 0 );
+
+	vertexAttribLoc   = glGetAttribLocation( getProgram(), "vertexPosition" );
+	texCoordAttribLoc = glGetAttribLocation( getProgram(), "iTexCoord" );
+	normalAttribLoc   = glGetAttribLocation( getProgram(), "iNormal" );
+}
+
+LightStaticMeshShader::~LightStaticMeshShader()
+{
+}
+
+void LightStaticMeshShader::Draw( Mesh* m )
+{
+	StaticMesh* mesh = (StaticMesh*) m;
+
+	uTextureSampler->setValue( mesh->texture->getTexId() );
+	Clean();
+
+	glBindBuffer( GL_ARRAY_BUFFER, mesh->vertexBuffer );
+	glVertexAttribPointer( vertexAttribLoc, 3, GL_FLOAT, GL_FALSE, 0, 0);
+
+	glBindBuffer( GL_ARRAY_BUFFER, mesh->texCoordBuffer ); 
+	glVertexAttribPointer( texCoordAttribLoc, 2, GL_FLOAT, GL_FALSE, 0,0 );
+
+	glBindBuffer( GL_ARRAY_BUFFER, mesh->normalBuffer ); 
+	glVertexAttribPointer( normalAttribLoc, 3, GL_FLOAT, GL_FALSE, 0,0 );
+	
+
+	glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, mesh->indicesBuffer );
+	glDrawElements( GL_TRIANGLES, mesh->nbTriangles*3 , GL_UNSIGNED_INT, 0 );
+}
+
+void LightStaticMeshShader::enable()
+{
+	StaticMeshShader::enable();
+	glEnableVertexAttribArray(normalAttribLoc);
+}
+
+void LightStaticMeshShader::disable()
+{
+	glDisableVertexAttribArray(normalAttribLoc);
+	StaticMeshShader::disable();
+}
+
+	
+
+//*****************************************************
+// TEXTURE SHADER
+//
+//*****************************************************
+
+TextureShader::TextureShader(void) : Shader()
+{
+	string vs = readFile( shader_path "texture_shader.vs" );
+	string ps = readFile( shader_path "texture_shader.ps" );
+	LoadShaderFromFile(vs,ps);
+
+	uModelMat = (UniformMat4f*) GetUniformByName("ModelMatrix");
+	assert(uModelMat != 0);
+
+	uViewMat = (UniformMat4f*) GetUniformByName("ViewMatrix");
+	assert(uViewMat != 0);
+
+	uProjectionMat = (UniformMat4f*) GetUniformByName("ProjectionMatrix");
+	assert(uProjectionMat != 0);
+
+	uTextureSampler = (UniformSampler2D*) GetUniformByName("tex");
+	assert(uTextureSampler != 0);
+}
+
+TextureShader::~TextureShader(void)
+{
+}
+
+//*****************************************************
+// GENERE UNE SHADOW MAP 
+//
+//*****************************************************
+
+ShadowMapGenerator::ShadowMapGenerator(void) : StaticMeshShader()
+{
+	string vs = readFile( shader_path "ShadowMapGenerator.vs" );
+	string ps = readFile( shader_path "ShadowMapGenerator.ps" );
+	LoadShaderFromFile(vs,ps);
+
+	uModelMat = (UniformMat4f*) GetUniformByName("ModelMatrix");
+	assert(uModelMat != 0);
+
+	uViewMat = (UniformMat4f*) GetUniformByName("ViewMatrix");
+	assert(uViewMat != 0);
+
+	uProjectionMat = (UniformMat4f*) GetUniformByName("ProjectionMatrix");
+	assert(uProjectionMat != 0);
+
+	vertexAttribLoc   = glGetAttribLocation( getProgram(), "vertexPosition" );
+}
+
+ShadowMapGenerator::~ShadowMapGenerator(void)
+{
+}
+
+void ShadowMapGenerator::Draw( Mesh* m )
+{
+	StaticMesh* mesh = (StaticMesh*) m;
+	Clean();
+
+	glEnableVertexAttribArray(vertexAttribLoc);
+
+	// dessine le mesh :			
+	glBindBuffer( GL_ARRAY_BUFFER, mesh->vertexBuffer );
+	glVertexAttribPointer( vertexAttribLoc, 3, GL_FLOAT, GL_FALSE, 0, 0);
+
+	glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, mesh->indicesBuffer );
+	glDrawElements( GL_TRIANGLES, mesh->nbTriangles * 3, GL_UNSIGNED_INT, 0 );
+}
+
+//*****************************************************
+// SIMPLE SHADOW MAP SHADER
+//
+//*****************************************************
+
+StaticMeshShadowMapShader::StaticMeshShadowMapShader(void) : StaticMeshShader()
+{
+	string vs = readFile( shader_path "SimpleShadowMap.vs" );
+	string ps = readFile( shader_path "SimpleShadowMap.ps" );
+	LoadShaderFromFile(vs,ps);
+
+	uModelMat = (UniformMat4f*) GetUniformByName("ModelMatrix");
+	assert(uModelMat != 0);
+
+	uViewMat = (UniformMat4f*) GetUniformByName("ViewMatrix");
+	assert(uViewMat != 0);
+
+	uProjectionMat = (UniformMat4f*) GetUniformByName("ProjectionMatrix");
+	assert(uProjectionMat != 0);
+
+	uShadowMapSampler = (UniformSampler2D*) GetUniformByName("shadowmap");
+	assert(uShadowMapSampler != 0);
+
+	uTextureSampler = (UniformSampler2D*) GetUniformByName("tex");
+	assert(uTextureSampler != 0);
+
+	uLightMat = (UniformMat4f*) GetUniformByName("LightMat");
+	assert(uLightMat != 0);
+
+	vertexAttribLoc   = glGetAttribLocation( getProgram(), "vertexPosition" );
+	texCoordAttribLoc = glGetAttribLocation( getProgram(), "iTexCoord" );
+}
+
+StaticMeshShadowMapShader::~StaticMeshShadowMapShader(void)
+{
+}
+
+void StaticMeshShadowMapShader::Draw( Mesh* m )
+{
+	StaticMesh* mesh = (StaticMesh*) m;
+
+	uTextureSampler->setValue( mesh->texture->getTexId() );
+	Clean();
+
+	glEnableVertexAttribArray(vertexAttribLoc);
+	glEnableVertexAttribArray(texCoordAttribLoc);
+
+	// dessine le mesh :			
+	glBindBuffer( GL_ARRAY_BUFFER, mesh->vertexBuffer );
+	glVertexAttribPointer( vertexAttribLoc, 3, GL_FLOAT, GL_FALSE, 0, 0);
+
+	glBindBuffer( GL_ARRAY_BUFFER, mesh->texCoordBuffer ); 
+	glVertexAttribPointer( texCoordAttribLoc, 2, GL_FLOAT, GL_FALSE, 0,0 );
+
+	glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, mesh->indicesBuffer );
+	glDrawElements( GL_TRIANGLES, mesh->nbTriangles * 3, GL_UNSIGNED_INT, 0 );
+}
+
+//*****************************************************
+// SKYBOX SHADER
+//
+//*****************************************************
+
+SkyboxShader::SkyboxShader(void) : StaticMeshShader()
+{
+	string vs = readFile( shader_path "skyboxShader.vs" );
+	string ps = readFile( shader_path "skyboxShader.ps" );
+	LoadShaderFromFile(vs,ps);
+
+	uModelMat = (UniformMat4f*) GetUniformByName("ModelMatrix");
+	assert(uModelMat != 0);
+
+	uViewMat = (UniformMat4f*) GetUniformByName("ViewMatrix");
+	assert(uViewMat != 0);
+
+	uProjectionMat = (UniformMat4f*) GetUniformByName("ProjectionMatrix");
+	assert(uProjectionMat != 0);
+
+	uCubeMapSampler = (UniformSamplerCube*) GetUniformByName("gCubemapTexture");
+	assert(uCubeMapSampler);
+
+	vertexAttribLoc   = glGetAttribLocation( getProgram(), "vertexPosition" );
+	texCoordAttribLoc = -1;
+}
+
+SkyboxShader::~SkyboxShader(void)
+{
+}
+
+void SkyboxShader::Draw( Mesh* mesh )
+{
+}

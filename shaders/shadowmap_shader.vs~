@@ -1,0 +1,27 @@
+// eclairage diffus
+#version 150
+
+#define MAX_MESH_BONES 150
+
+uniform mat4 ModelMatrix;
+uniform mat4 ViewMatrix;
+uniform mat4 ProjectionMatrix;
+uniform mat4 uBonesMatrix[MAX_MESH_BONES];
+
+in vec3  vertexPosition;
+in ivec4 bonesIndex;
+in vec4  bonesWeight;
+
+varying vec3 interpolatedVertexEye;
+
+void main(void)
+{	
+	mat4 BoneTransform = uBonesMatrix[ bonesIndex.x ] * bonesWeight.x;
+	BoneTransform += uBonesMatrix[ bonesIndex.y ] * bonesWeight.y;
+	BoneTransform += uBonesMatrix[ bonesIndex.z ] * bonesWeight.z;
+	BoneTransform += uBonesMatrix[ bonesIndex.w ] * bonesWeight.w;
+
+  gl_Position =  ProjectionMatrix * ViewMatrix * ModelMatrix * BoneTransform * vec4(vertexPosition,1.0 );
+
+	interpolatedVertexEye = vec3( ModelMatrix * vertex_pos );
+}

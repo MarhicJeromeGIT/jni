@@ -1,0 +1,11 @@
+#ifndef CONFIG_H
+	#define CONFIG_H
+ 
+#cmakedefine WITH_FOO
+#cmakedefine WITH_BAR
+ 
+#cmakedefine BAZ @BAZ@
+
+#cmakedefine EXECUTABLE_PATH @EXECUTABLE_PATH@
+
+#endif // CONFIG_H

@@ -1,0 +1,102 @@
+
+uniform sampler2D h0tildeConj; // xy : h0tilde, zw : h0tildeconj
+uniform float N;
+uniform float L;
+uniform float time;
+uniform float multiplicateur;
+
+varying vec2 texCoord;
+
+#define M_PI 3.141592654
+
+float dispersionRelation( float n, float m )
+{
+	const float g = 9.81;
+
+	float k0 = 2.0 * M_PI * ( n - N/2.0 ) / L;
+	float k1 = 2.0 * M_PI * ( m - N/2.0 ) / L;
+	
+	float lenghtK = sqrt( k0*k0 + k1*k1 );
+
+	float res = sqrt( g * lenghtK );
+	
+//	const float T = 20.0;
+//	const float w0 = 2.0 * M_PI / T;
+//	res = floor( res / w0 ) * w0;
+	
+    return res;
+}
+
+vec3 normale;
+vec2 D;
+
+vec2 htilde( float n, float m, float time )
+{
+	vec2 result;
+	
+	vec2 coord = vec2( n / N, m / N );
+	vec4 h0 = texture2D( h0tildeConj, coord ).xyzw;
+	
+	float w = dispersionRelation( n, m );
+	float cos1 = cos(  w* time );
+	float sin1 = sin(  w* time );
+	float cos2 = cos( -w* time );
+	float sin2 = sin( -w* time );
+
+	// h0 * c0 + h0conj * c2
+	float r1 = h0.x * cos1 - h0.y * sin1 + h0.z * cos2 - h0.w * sin2;
+	float r2 = h0.x * sin1 + h0.y * cos1 + h0.z * sin2 + h0.w * cos2;
+
+	result.x = r1 * multiplicateur;
+	result.y = r2 * multiplicateur;
+	
+	return result;
+}
+
+float computeH()
+{
+	float h = 0.0;
+	D = vec2(0.0,0.0);
+	normale = vec3(0.0,0.0,0.0);
+	
+	float i = texCoord.x * N;
+	float j = texCoord.y * N;
+	vec2 x = vec2((i - N / 2.0) * L / N, (j - N / 2.0) * L / N);
+
+
+	for( float n=0.0; n< N; n+= 1.0 )
+	{
+		for( float m=0.0; m< N; m+= 1.0 )
+		{
+			float kx = 2.0 * M_PI * ( n - N/2.0 ) / L;
+			float kz = 2.0 * M_PI * ( m - N/2.0 ) / L;
+			vec2 k = vec2(kx,kz);
+			float kl = length(k);
+			float kdotx = dot( k, x );
+			
+			vec2 c = vec2( cos(kdotx), sin(kdotx) ); 
+			vec2 ht = htilde( n, m, time );
+			
+			vec2 final;
+			final.x = ht.x * c.x - ht.y * c.y;
+			final.y = ht.x * c.y + ht.y * c.x;
+
+			h += final.x;
+			
+			normale += vec3(-kx * final.y, 0.0, -kz * final.y );
+			
+			if( kl > 0.001 )
+				D += vec2( (kx / kl) * final.y, (kz / kl) * final.y);
+		}
+	}
+	normale = normalize( vec3(0,1,0) - normale );
+	return h;
+}
+
+void main()
+{
+	float h = computeH();
+	gl_FragData[0] = vec4(D.x,h,D.y,1.0);
+	gl_FragData[1] = vec4(normale,1.0);
+	
+}

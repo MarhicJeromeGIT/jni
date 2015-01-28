@@ -1,0 +1,178 @@
+#include "Quaternion.h"
+using namespace std;
+#include "macros.h"
+using namespace glm;
+
+Quaternion::Quaternion() : _x(0), _y(0), _z(0), _w(0)
+{
+}
+
+Quaternion::Quaternion(float x, float y, float z, float w) : _x(x), _y(y), _z(z), _w(w)
+{
+}
+
+Quaternion::Quaternion(const vec3& v, float s)
+{
+	_x = v.x;
+	_y = v.y;
+	_z = v.z;
+	_w = s;
+}
+
+Quaternion::Quaternion(const Quaternion& q)
+{
+	_x = q._x;
+	_y = q._y;
+	_z = q._z;
+	_w = q._w;
+}
+
+Quaternion& Quaternion::operator=(const Quaternion& q)
+{
+	_x = q._x;
+	_y = q._y;
+	_z = q._z;
+	_w = q._w;
+	return *this;
+}
+
+bool Quaternion::operator==(const Quaternion& q)
+{
+	return( _x == q._x && _y == q._y && _z == q._z && _w == q._w );
+}
+
+bool equal(const Quaternion& q1, const Quaternion& q2 , float e)
+{
+	return( abs(q1._x - q2._x ) < e && 
+			abs(q1._y - q2._y ) < e && 
+			abs(q1._z - q2._z ) < e && 
+			abs(q1._w - q2._w ) < e );
+}
+
+Quaternion Quaternion::conjugate() const
+{
+	return Quaternion( -_x, -_y, -_z, _w );
+}
+
+float Quaternion::length()
+{
+	return sqrt(_x*_x + _y*_y + _z*_z + _w*_w);
+}
+
+Quaternion Quaternion::inverse() const
+{
+	float length2 = _x*_x + _y*_y + _z*_z + _w*_w;
+	return conjugate()/length2;
+}
+
+
+ostream& operator<<( ostream &flux, const Quaternion& q )
+{
+	flux<<"["<<q._w<<" + ("<<q._x<<","<<q._y<<","<<q._z<<")]";
+	return flux;
+}
+
+
+Quaternion operator*(const Quaternion& q1, const Quaternion& q2)
+{
+	float x = q1._w*q2._x + q1._x*q2._w + q1._y*q2._z - q1._z*q2._y;
+	float y = q1._w*q2._y - q1._x*q2._z + q1._y*q2._w + q1._z*q2._x;
+	float z = q1._w*q2._z + q1._x*q2._y - q1._y*q2._x + q1._z*q2._w;
+	float w = q1._w*q2._w - q1._x*q2._x - q1._y*q2._y - q1._z*q2._z;
+	return Quaternion(x,y,z,w);
+}
+
+Quaternion& Quaternion::normalize()
+{
+	float l = length();
+	if( l > 0 && l != 1.0f )
+	{
+		_x /= l;
+		_y /= l;
+		_z /= l;
+		_w /= l;
+	}
+	return *this;
+}
+
+Quaternion Quaternion::operator/(float f) const
+{
+	return Quaternion( _x/f, _y/f, _z/f, _w/f );
+}
+
+mat4 Quaternion::RotationMatrix()
+{
+	float a = 1- 2*_y*_y - 2*_z*_z;
+	float b = 2*_x*_y + 2*_w*_z;
+	float c = 2*_x*_z - 2*_w*_y;
+
+	float e = 2*_x*_y - 2*_w*_z;
+	float f = 1 - 2*_x*_x - 2*_z*_z;
+	float g = 2*_y*_z + 2*_w*_x;
+
+	float i = 2*_x*_z + 2*_w*_y;
+	float j = 2*_y*_z - 2*_w*_x;
+	float k = 1 - 2*_x*_x - 2*_y*_y;
+
+	return mat4(a,b,c,0,e,f,g,0,i,j,k,0,0,0,0,1);
+}
+
+float Quaternion::dot(const Quaternion& q) const
+{
+	return _x*q._x + _y*q._y + _z*q._z + _w*q._w;
+}
+
+Quaternion operator*(float f, const Quaternion& q)
+{
+	return Quaternion(q._x*f, q._y*f, q._z*f, q._w*f);
+}
+
+Quaternion operator+(const Quaternion& q1, const Quaternion& q2)
+{
+	return Quaternion( q1._x + q2._x , q1._y + q2._y , q1._z + q2._z , q1._w + q2._w );
+}
+
+// spherical linear interpolation
+// t = 0 -> rend q1
+// t = 1 -> rend q2
+/*Quaternion slerp(float t, const Quaternion& q1, const Quaternion& q2)
+{
+	assert(t>= 0 && t<= 1);
+	float theta = acos( q1.dot(q2) );
+	float sin_theta = sin(theta);
+	Quaternion q = (sin( theta*(1.0f-t) ) / sin_theta)*q1 + (sin(theta*t)/sin_theta)*q2;
+	return (q.normalize());
+}*/
+
+Quaternion slerp(float t, const Quaternion& a, const Quaternion& b)
+{
+	t = 1.0f - t;
+	float		beta,theta,sin_t,cos_t,phi;
+	bool		bflip;
+	int			nSpin=0;
+	cos_t		= a._x*b._x+a._y*b._y+a._z*b._z+a._w*b._w;
+	if(cos_t<0.0f)
+	{
+		cos_t	=-cos_t;
+		bflip	=true;
+	}
+	else
+	{
+		bflip	=false;
+	}
+	cos_t		=cos_t<-1?-1:cos_t>1?1:cos_t;
+	theta		= acos(cos_t);
+	phi			=theta;//+nSpin*CstPi;
+	sin_t		=sin(theta);
+	if(sin_t<0.001)
+	{
+		beta	=1.0f-t;
+	}
+	else
+	{
+ 		beta	=sin(theta-t*phi)/sin_t;
+ 		t	    =sin(t*phi)/sin_t;
+	}
+	if(bflip) t=-t;
+	return(Quaternion( beta*a._x+t*b._x, beta*a._y+t*b._y, beta*a._z+t*b._z, beta*a._w+t*b._w));
+}

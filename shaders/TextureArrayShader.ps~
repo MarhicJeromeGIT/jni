@@ -1,0 +1,12 @@
+uniform sampler2DArray tex;
+uniform vec4 color;
+
+varying vec3 texCoord;
+
+void main()
+{
+  float letterColor  = texture(tex, texCoord.xyz ).r;
+
+	gl_FragColor = letterColor * color;
+}
+          

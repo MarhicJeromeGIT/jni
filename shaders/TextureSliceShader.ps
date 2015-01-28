@@ -1,0 +1,10 @@
+
+uniform sampler3D tex;
+
+varying vec3 texCoord;
+
+void main()
+{ 
+	gl_FragColor = texture3D( tex, texCoord );
+	gl_FragColor.a = 1.0;
+}

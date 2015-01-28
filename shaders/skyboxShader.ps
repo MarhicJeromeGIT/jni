@@ -1,0 +1,10 @@
+uniform samplerCube gCubemapTexture;
+
+varying vec3 oTexCoord;
+
+void main()
+{
+    gl_FragColor = textureCube(gCubemapTexture, oTexCoord);
+} 
+
+          

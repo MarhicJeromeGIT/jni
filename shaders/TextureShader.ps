@@ -1,0 +1,39 @@
+uniform sampler2D tex;
+uniform sampler2D shadowmap;
+uniform vec4 clipPlane;
+
+varying vec2 texCoord;
+varying vec4 PosFromLightPOV;
+varying vec3 interpolatedVertexEye;
+
+uniform vec4 lightDiffuseColor;
+uniform vec4 ambientColor;
+varying float diffuseAmount;
+
+void main()
+{
+	float clipPos = dot (interpolatedVertexEye, clipPlane.xyz) + clipPlane.w;
+	if (clipPos < 0.0) {
+		  discard;
+	}	
+
+  vec4 color  = texture2D(tex, texCoord );
+
+  vec3 ProjCoords = PosFromLightPOV.xyz / PosFromLightPOV.w;                                  
+  float z =  ProjCoords.z;                                                     
+  float depth = texture2D(shadowmap, PosFromLightPOV.xy ).z;
+	float shadow = 0.0;                                          
+    
+	if (depth < (z - 0.0011) )
+	{                                                                 
+    shadow = 1.0;                                                                         
+  }
+	else                                                                                    
+  {
+	  shadow = 1.0;                                                                         
+	}
+
+	float ambientAmount = 0.5;
+	vec4 lightColor = vec4( ambientColor.xyz * ambientAmount + vec3(1.0,1.0,1.0)*diffuseAmount , 1.0);
+	gl_FragColor = lightColor * vec4( vec3( color * shadow), color.a);
+}

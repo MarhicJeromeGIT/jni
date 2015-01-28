@@ -1,0 +1,33 @@
+
+uniform sampler2D tex;
+
+uniform float uTime; // effect elapsed time
+
+
+void main()
+{
+	float time = uTime;
+
+	const vec3 shockParams = vec3( 10.0, 0.8, 0.1 );
+	const vec2 center = vec2(0.5,0.5);
+	vec2 uv = vec2( gl_FragCoord.x, gl_FragCoord.y )/vec2(1024.0,768.0);
+
+  float d = distance(uv, center);
+
+  vec2 texCoord = uv;
+	if ( (d <= time + shockParams.z ) && ( d >= time - shockParams.z) ) 
+	{
+		float diff = (d - time); 
+		float powDiff = 1.0 - pow(abs(diff*shockParams.x), shockParams.y); 
+		float diffTime = diff  * powDiff; 
+
+		vec2 diffUV = normalize(uv - center); 
+	
+		texCoord += (diffUV * diffTime);
+	}
+
+	gl_FragColor = texture2D(tex, texCoord );
+	//gl_FragColor.a = 0.0;
+
+}
+

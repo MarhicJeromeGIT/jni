@@ -1,0 +1,28 @@
+uniform mat4 ModelMatrix;
+uniform mat4 ViewMatrix;
+uniform mat4 ProjectionMatrix;
+uniform mat3 NormalMatrix;
+
+in vec3  vertexPosition;
+in vec2  iTexCoord;
+in vec3  iNormal;
+
+varying vec2 texCoord;
+varying vec3 view,normal;
+
+void main(void)
+{	
+  texCoord    = iTexCoord;
+
+	float size = 10.0f;
+	vec3 pos = vec3(ViewMatrix * ModelMatrix * vec4(vertexPosition,1.0f) );
+	float3 corner_position = pos + size * vec3( iTexCoord.x - 0.5, 0, 0 );  
+	          
+	gl_Position = ProjectionMatrix * vec4(corner_position,1.0f);  // eye space   	
+
+	normal = (NormalMatrix * iNormal);  
+	view = (ViewMatrix * ModelMatrix * vec4(corner_position,1.0) ).xyz;
+
+
+} 
+ 

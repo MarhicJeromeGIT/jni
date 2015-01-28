@@ -1,0 +1,32 @@
+
+uniform sampler2D tex;
+
+
+varying vec2 texCoord;
+
+void main()
+{
+
+	float dx = 1.0/1024.0;
+	float dy = 1.0/1024.0;
+
+	vec2 center = texCoord;
+
+	vec4 a = texture2D( tex, center + vec2(-dx,-dy) );
+	vec4 b = texture2D( tex, center + vec2(-dx, 0 ) );
+	vec4 c = texture2D( tex, center + vec2(-dx, dy) );
+
+	vec4 d = texture2D( tex, center + vec2(0,-dy) );
+	vec4 e = texture2D( tex, center );
+	vec4 f = texture2D( tex, center + vec2(0, dy) );
+
+	vec4 g = texture2D( tex, center + vec2(+dx,-dy) );
+	vec4 h = texture2D( tex, center + vec2(+dx, 0 ) ); 
+	vec4 i = texture2D( tex, center + vec2(+dx, dy) );
+
+	//vec4 sum = a+b+c+d+5*e+f+g+h+i;
+	vec4 sum = b+d+e+f+h;
+
+	//gl_FragColor = texture2D( tex, texCoord );
+	gl_FragColor = sum * 0.55;
+}

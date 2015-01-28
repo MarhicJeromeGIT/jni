@@ -1,0 +1,74 @@
+#version 120
+
+#define MAX_MESH_BONES 50
+
+uniform mat4 ModelMatrix;
+uniform mat4 ViewMatrix;
+uniform mat4 ProjectionMatrix;
+uniform mat3 NormalMatrix;
+uniform mat4 uBonesMatrix[MAX_MESH_BONES];
+uniform vec4 LightPos; // en world space
+
+attribute vec3  vertexPosition, vertexNormal;
+attribute vec3  vertexTangente;
+attribute vec4  bonesIndex;
+attribute vec4  bonesWeight;
+attribute vec2  vertexTexCoord;
+
+varying vec3 Normal, LightDir, EyeVec;
+varying vec2 texCoord;
+varying vec3 interpolatedVertexEye;
+varying vec4 vertex_pos;
+
+varying vec3 lightVec; 
+
+#ifdef CRAYON_STYLE
+varying vec2 windowUV;
+#endif
+
+void main(void)
+{	
+	mat4 ModelViewMatrix = ViewMatrix * ModelMatrix;
+	int x = int(bonesIndex.x);
+	int y = int(bonesIndex.y);
+	int z = int(bonesIndex.z);
+	int w = int(bonesIndex.w);
+	mat4 BoneTransform = uBonesMatrix[ x ] * bonesWeight.x;
+	BoneTransform += uBonesMatrix[ y ] * bonesWeight.y;
+	BoneTransform += uBonesMatrix[ z ] * bonesWeight.z;
+	BoneTransform += uBonesMatrix[ w ] * bonesWeight.w;
+
+	mat3 NormalMat = ( mat3( (ViewMatrix*ModelMatrix*BoneTransform) ) );
+	Normal = NormalMat * vertexNormal + NormalMatrix * 0.0001 * vertexNormal;
+	
+	vec4 vertex_transform = BoneTransform *  vec4(vertexPosition,1.0 );
+	vertex_pos = ModelViewMatrix * vertex_transform;
+	
+	LightDir = LightPos.xyz;
+	texCoord = vertexTexCoord;
+
+  gl_Position =  ProjectionMatrix * vertex_pos;
+
+	interpolatedVertexEye = vec3( ModelMatrix * vec4(vertexPosition,1.0 ) );
+
+#ifdef CRAYON_STYLE
+	vec4 test = ProjectionMatrix * ViewMatrix * vertex_transform;
+  vec2 winuv =  vec2(0.5,0.5) + 0.1 * vec2( test.x, test.y );
+	windowUV = vec2(0.0,0.0); //( BoneTransform * vec4( winuv.x, winuv.y, 0,0 ) ).xy;
+#endif
+
+	// Bump map stuff :
+	vec3 n = normalize(Normal);
+	vec3 t = normalize(NormalMat * vertexTangente);
+	vec3 b = cross(n, t);
+	
+	lightVec.x = dot(LightDir, t);
+	lightVec.y = dot(LightDir, b);
+	lightVec.z = dot(LightDir, n);
+
+	EyeVec.x = dot(-vertex_pos.xyz, t);
+	EyeVec.y = dot(-vertex_pos.xyz, b);
+	EyeVec.z = dot(-vertex_pos.xyz, n);
+
+}
+

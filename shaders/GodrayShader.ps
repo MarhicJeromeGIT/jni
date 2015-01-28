@@ -1,0 +1,33 @@
+
+uniform sampler2D tex;
+uniform vec2 LightPosScreen;
+
+uniform float weight;
+uniform float decay;
+uniform float exposure;
+
+varying vec2 texCoord;
+
+const int NB_SAMPLE = 100;
+
+void main()
+{ 
+	vec2 deltaCoord = ( LightPosScreen - texCoord);
+	deltaCoord /= NB_SAMPLE;
+	float illuminationDecay = 1.0;
+	
+	vec2 coord = texCoord;
+	vec4 finalColor = vec4(0.0);
+	
+	for( int i=0; i< NB_SAMPLE; i++ )
+	{
+		vec4 sample = texture2D(tex, coord );
+        sample *= illuminationDecay * weight;
+        finalColor += sample;
+	
+		coord += deltaCoord;
+		
+		illuminationDecay *= decay;
+	}
+	gl_FragColor = finalColor * exposure;
+}

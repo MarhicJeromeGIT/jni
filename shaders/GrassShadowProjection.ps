@@ -1,0 +1,14 @@
+
+uniform sampler2D lightMap;
+
+varying vec4 PosFromLightPOV;
+
+void main()
+{ 
+    vec3 ProjCoords = PosFromLightPOV.xyz / PosFromLightPOV.w;                                  
+   
+    float z =  ProjCoords.z;                                                     
+    float depth = texture2D(lightMap, PosFromLightPOV.xy ).z;
+	
+	gl_FragColor = vec4( depth, depth, depth, 1.0 );
+}

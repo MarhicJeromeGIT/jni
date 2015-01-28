@@ -1,0 +1,127 @@
+#include "StaticMesh.h"
+#include <assimp/cimport.h>
+#include <assimp/scene.h>
+#include <assimp/postprocess.h>
+#include "TextureGL.h"
+#include "TextureManager.h"
+#include "Shader.h"
+
+StaticMesh::StaticMesh(Shader* s, const string& n, aiMesh* mesh, const string& textureName, Shader* fp) : Mesh(s,n,fp)
+{
+	
+	texture = TextureManager::getTextureManager()->getTexture( textureName );
+
+	LoadMesh(mesh);
+
+}
+
+StaticMesh::StaticMesh( vec3* vertices, vec2* texCoord, vec3* normales, int nbVertices, ivec3* triangles, int nbt, const char* filename )
+{
+	texture = TextureManager::getTextureManager()->getTexture( filename );
+
+
+	totalVertices = nbVertices;
+	nbTriangles   = nbt;
+
+	if( texCoord != 0 )
+	{
+		glGenBuffers(1,&texCoordBuffer);
+		glBindBuffer( GL_ARRAY_BUFFER, texCoordBuffer);
+		glBufferData( GL_ARRAY_BUFFER, sizeof(vec2) * totalVertices , texCoord, GL_STATIC_DRAW );
+	}
+
+	glGenBuffers(1,&vertexBuffer);
+	glBindBuffer( GL_ARRAY_BUFFER, vertexBuffer );
+	glBufferData( GL_ARRAY_BUFFER, sizeof(vec3) * totalVertices, vertices, GL_STATIC_DRAW );
+
+	if( normales != 0 )
+	{
+		glGenBuffers(1,&normalBuffer);
+		glBindBuffer( GL_ARRAY_BUFFER, normalBuffer );
+		glBufferData( GL_ARRAY_BUFFER, sizeof(vec3) * totalVertices, normales, GL_STATIC_DRAW );
+	}
+
+	glGenBuffers(1,&indicesBuffer);
+	glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, indicesBuffer );
+	glBufferData( GL_ELEMENT_ARRAY_BUFFER, sizeof(unsigned int) * nbTriangles * 3, triangles, GL_STATIC_DRAW );
+}
+
+
+void StaticMesh::LoadMesh( aiMesh* mesh )
+{
+	totalVertices = mesh->mNumVertices;
+	nbTriangles   = mesh->mNumFaces;
+
+	vec3* vertexPositionArray        = new vec3[ totalVertices ];
+	unsigned int* vertexIndiceArray  = new unsigned int[ nbTriangles * 3 ];
+
+	int verticeIndex = 0;
+	int vertexIndexNumber = 0;
+
+	for( int k = 0; k < mesh->mNumVertices; k++ )
+	{
+		aiVector3D position = mesh->mVertices[k];
+		vertexPositionArray[verticeIndex].x = position.x;
+		vertexPositionArray[verticeIndex].y = position.y;
+		vertexPositionArray[verticeIndex].z = position.z;
+		verticeIndex++;
+	}
+
+	for( int k=0; k< mesh->mNumFaces; k++ )
+	{
+		aiFace face = mesh->mFaces[k];
+		for( int f=0; f<3; f++ )
+		{
+			int vertexIndex = face.mIndices[f];
+			vertexIndiceArray[vertexIndexNumber] = vertexIndex;
+			vertexIndexNumber++;
+		}
+	}
+
+	if( mesh->HasTextureCoords(0) )
+	{
+		float* texCoordArray = new float[ mesh->mNumVertices * 2];
+		for( int i=0; i< mesh->mNumVertices; i++ )
+		{
+			aiVector3D uv = mesh->mTextureCoords[0][i]; // [0] -> texture index
+			texCoordArray[i*2] = uv.x;
+			texCoordArray[i*2+1] = uv.y;
+		}
+
+		glGenBuffers(1,&texCoordBuffer);
+		glBindBuffer( GL_ARRAY_BUFFER, texCoordBuffer);
+		glBufferData( GL_ARRAY_BUFFER, sizeof(float) * mesh->mNumVertices * 2, texCoordArray, GL_STATIC_DRAW );
+	}
+
+	glGenBuffers(1,&vertexBuffer);
+	glBindBuffer( GL_ARRAY_BUFFER, vertexBuffer );
+	glBufferData( GL_ARRAY_BUFFER, sizeof(vec3) * totalVertices, vertexPositionArray, GL_STATIC_DRAW );
+
+	glGenBuffers(1,&indicesBuffer);
+	glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, indicesBuffer );
+	glBufferData( GL_ELEMENT_ARRAY_BUFFER, sizeof(unsigned int) * nbTriangles * 3, vertexIndiceArray, GL_STATIC_DRAW );
+
+	if( mesh->HasNormals() )
+	{
+		glGenBuffers(1,&normalBuffer);
+		glBindBuffer( GL_ARRAY_BUFFER, normalBuffer );
+		glBufferData( GL_ARRAY_BUFFER, sizeof(vec3) * totalVertices, mesh->mNormals, GL_STATIC_DRAW );
+	}
+}
+
+StaticMesh::~StaticMesh(void)
+{
+	glDeleteBuffers(1, &vertexBuffer);
+	glDeleteBuffers(1, &texCoordBuffer);
+	glDeleteBuffers(1, &indicesBuffer);
+}
+
+void StaticMesh::Draw( Shader* s)
+{
+	s->Draw( this );
+}
+
+void StaticMesh::SendData( Shader* shader )
+{
+
+}

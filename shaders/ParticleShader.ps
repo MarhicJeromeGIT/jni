@@ -1,0 +1,16 @@
+
+uniform sampler2D tex;
+
+varying vec2 texCoord;
+varying float alpha;
+
+void main()                                                        
+{   
+	vec4 color = texture2D(tex, texCoord);
+
+	float d = length( texCoord - vec2(0.50,0.50) ) * 2.0;
+
+	gl_FragColor = vec4( color );
+  gl_FragColor.a *= alpha * (1.0-d*d);
+}
+

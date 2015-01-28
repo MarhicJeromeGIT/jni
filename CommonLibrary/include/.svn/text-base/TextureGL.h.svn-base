@@ -1,0 +1,36 @@
+#pragma once
+
+#include <GL/glew.h>
+#include <string>
+using namespace std;
+
+
+
+GLuint makeTextureRGBA( int sx, int sy,unsigned char* data);
+
+class TextureGL
+{
+public:
+	TextureGL(const string& filename);
+	void Load(const string& filename);
+
+	GLuint getTexId();
+	bool IsLoaded();
+private:
+	
+	GLuint texId;
+	int width; 
+	int height;
+	int bpp;
+	unsigned char* pixels;
+
+public:
+	int getWidth() { return width; }
+	int getHeight() { return height; }
+
+	bool error;
+};
+
+TextureGL* TextureGL_Create(const string& filename);
+
+GLuint TextureGL_CreateEmptyTexture(GLenum target, int w, int h, GLint internalformat, GLenum format);

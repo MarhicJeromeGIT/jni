@@ -1,0 +1,22 @@
+
+varying vec4 position;
+uniform float objectCol;
+
+float LinearizeDepth()
+{
+
+  float n = 1.0; // camera z near
+  float f = 100.0; // camera z far
+  float z = gl_FragCoord.z;
+  return (1.0 * n) / (f + n - z * (f - n));	
+}
+
+void main()
+{
+//  float d = LinearizeDepth();
+	float d = gl_FragCoord.z / 100.0;
+
+	gl_FragColor = vec4(d,d,d+objectCol*0.00001,1.0);
+
+	//gl_FragColor = vec4(0,0,objectCol*0.0001,1.0);
+} 

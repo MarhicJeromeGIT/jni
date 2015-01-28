@@ -1,0 +1,81 @@
+
+
+uniform samplerCube gCubemapTexture;
+#ifdef USE_TEXTURE
+uniform sampler2D texDiffuse;
+varying vec2 uv;
+#endif
+
+#ifdef USE_NORMALMAP
+uniform sampler2D normalMap;
+varying mat3 invNormalMat;
+#endif
+
+varying vec3 pos_eye;
+varying vec3 n_eye;
+
+varying vec3 lightDir, eyeVec, normal;
+varying mat4 invviewmat;
+
+void main()
+{
+#ifdef USE_NORMALMAP
+	vec3 bump = normalize( texture2D(normalMap, uv).xyz * 2.0 - 1.0);
+	float diffuse = max( dot(lightDir, bump), 0.0 );
+#else
+
+	vec3 L = normalize(lightDir);
+  vec3 N = normalize(normal);
+	float diffuse = max(0.0, dot(N,L) );
+
+#endif
+
+	float specular = 0.0;
+
+	if(diffuse > 0.0)
+	{
+#ifdef USE_NORMALMAP
+		vec3 vVec = normalize(eyeVec);
+		float specular = pow(clamp(dot(reflect(-lightDir, bump), vVec), 0.0, 1.0), 32.0 );
+#else
+		vec3 E = normalize(eyeVec);
+		vec3 R = reflect(-L, N);
+		specular = pow(clamp(dot(R, E), 0.0, 1.0), 16.0 );
+#endif
+	}
+	float l = 0.4 + diffuse;
+	vec4 lightColor = vec4(l,l,l,1.0);
+
+	vec3 incident_eye = normalize (pos_eye);
+	vec3 normal = normalize (n_eye);
+
+#ifdef USE_NORMALMAP
+	vec3 reflected = reflect (incident_eye, bump);
+	// convert from eye to world space
+	reflected = invNormalMat * reflected;
+
+	reflected = vec3 (invviewmat * vec4 (reflected, 0.0));
+#else
+	vec3 reflected = reflect (incident_eye, normal);
+	// convert from eye to world space
+	reflected = vec3 (invviewmat * vec4 (reflected, 0.0));
+#endif
+
+	vec4 reflectColor = textureCube(gCubemapTexture, reflected );
+
+#ifdef USE_TEXTURE
+	vec4 col = texture2D( texDiffuse, uv );
+
+	gl_FragColor = (reflectColor+lightColor*0.00001 + vec4(0.4,0.4,0.4,1.0)) * col + specular * vec4(1.0,1.0,1.0,1.0);
+
+#else
+	gl_FragColor = lightColor * reflectColor + specular * vec4(1.0,1.0,1.0,1.0);
+#endif
+
+#ifdef USE_NORMALMAP 
+ 	gl_FragColor = ( lightColor * (reflectColor+col) + specular * vec4(1.0,1.0,1.0,1.0) );
+
+#endif
+}
+
+          

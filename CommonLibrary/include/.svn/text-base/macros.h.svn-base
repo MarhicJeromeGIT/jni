@@ -1,0 +1,13 @@
+
+#include <iostream>
+
+// ASSERT
+#ifdef _DEBUG
+	#define classert(COND) \
+		do { if(!(COND)){ std::cout<<"error : "<<#COND<<std::endl; \
+			 __debugbreak(); \
+			 } \
+		}while(0)
+#else
+	#define classert(COND)
+#endif

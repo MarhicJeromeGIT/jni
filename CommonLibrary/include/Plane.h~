@@ -1,0 +1,30 @@
+#pragma once
+
+#include <glm.hpp>
+using namespace glm;
+
+
+class Plane
+{
+public:
+	// 	Ax + By + Cz + D = 0
+	vec3 ABC;
+	float D;
+
+	vec3 point;
+
+	// la normale est n = cross(p1-p0, p2-p0)
+	Plane(){}
+	Plane( const vec3& p0, const vec3& p1, const vec3& p2);
+	Plane( const vec3& normal, const vec3& p0 );
+	~Plane(void);
+
+	float Distance( const vec3& point )
+	{
+		return dot(ABC,point) + D;
+	}
+
+};
+
+
+
