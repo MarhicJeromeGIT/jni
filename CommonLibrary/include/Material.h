@@ -13,6 +13,8 @@ class Shader;
 class TextureGL;
 #include <glm/glm.hpp>
 
+#include "MaterialDrawPass.h"
+
 #include "../Shaders/DiffuseShader.h"
 #include "../Shaders/PhongShader.h"
 #include "../Shaders/TextureShader.h"
@@ -54,20 +56,12 @@ class PhongWithDepthShader;
 class MovingGrassShader;
 class GrassShadowProjectionShader;
 class InstancingShader;
+class DeferredPassShader;
+class DeferredShaderFullScreen;
 
 #ifndef __ANDROID__ 
 class TextureSliceShader;
 #endif
-
-enum MATERIAL_DRAW_PASS
-{
-	SHADOW,
-	WATER,
-	COLOR,
-	GUI,
-	DEPTH,
-	CONTOUR, // for cellshading
-};
 
 enum MATERIAL_TYPE // un material - un shader
 {
@@ -101,6 +95,8 @@ enum MATERIAL_TYPE // un material - un shader
 	MATERIAL_COLORED_TEXT,
 	MATERIAL_SOBEL,
 	MATERIAL_SKYBOX,
+	MATERIAL_DEFERRED,
+	MATERIAL_DEFERRED_FULLSCREEN,
 };
 
 class Material
@@ -838,7 +834,40 @@ public:
 	virtual void SetupUniforms(MATERIAL_DRAW_PASS Pass);
 	Shader* getShader( MATERIAL_DRAW_PASS Pass );
 };
-
 #endif
+
+//************************************//
+// Material Deferred
+//************************************//
+
+class MaterialDeferred : public Material
+{
+public:
+	DeferredPassShader* shader;
+
+public:
+	MaterialDeferred();
+	virtual void SetupUniforms(MATERIAL_DRAW_PASS Pass);
+	Shader* getShader( MATERIAL_DRAW_PASS Pass );
+};
+
+//************************************//
+// Material Deferred Fullscreen
+//************************************//
+
+class MaterialDeferredFullScreen : public Material
+{
+public:
+	DeferredShaderFullScreen* shader;
+
+	TextureGL* normalMap;
+	TextureGL* vertexMap;
+public:
+	MaterialDeferredFullScreen();
+	virtual void SetupUniforms(MATERIAL_DRAW_PASS Pass);
+	void setNormalMap( TextureGL* map );
+	void setVertexMap( TextureGL* map );
+	Shader* getShader( MATERIAL_DRAW_PASS Pass );
+};
 
 #endif

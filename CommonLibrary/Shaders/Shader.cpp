@@ -40,6 +40,7 @@ using namespace std;
 #include "GlassShader.h"
 #include "GrassShader.h"
 #include "InstancingShader.h"
+#include "DeferredShader.h"
 
 //**************************************
 // Shader manager
@@ -63,6 +64,8 @@ ShaderManager::ShaderManager()
 	shaders[CUBEMAP_REFLECTION_TEXTURE_SHADER] = new CubemapReflectionShaderWithTexture();
 	shaders[CUBEMAP_REFLECTION_TEXTURE_NORMAL_SHADER] = new CubemapReflectionShaderWithTextureAndNormal();
 	shaders[COLOR_TEXT_SHADER]           = new ColorTextShader();
+	shaders[DEFERRED_SHADER]             = new DeferredPassShader();
+	shaders[DEFERRED_SHADER_FULLSCREEN]  = new DeferredShaderFullScreen();
 	shaders[DIFFUSE_SHADER]              = new DiffuseShader();
 //	shaders[DIFFUSE_SHADOW_SHADER]       = new DiffuseShadowShader();
 //	shaders[DISCO_BALL_SHADER]           = new DiscoBallShader();

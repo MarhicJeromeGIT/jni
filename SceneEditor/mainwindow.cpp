@@ -70,23 +70,20 @@ mainwindow::mainwindow( ) : QWidget()
 	
 	pair<string,Scene*> SceneItem;
 
-	QListWidgetItem* item = new QListWidgetItem(tr("Glass Refraction/Reflection"), listWidget);
-	//listWidget->setStyleSheet( "QListWidget::item { border-bottom: 1px solid black; padding-left: 5px; }" );
-
+	new QListWidgetItem(tr("Deferred Rendering"), listWidget);
+	new QListWidgetItem(tr("Glass Refraction/Reflection"), listWidget);
 	new QListWidgetItem(tr("Grass Scene"), listWidget );
-	new QListWidgetItem(tr("Dual Depth Peeling"), listWidget);
 	new QListWidgetItem(tr("Textured Dwarf"), listWidget);
 	new QListWidgetItem(tr("Ocean"), listWidget);
+	new QListWidgetItem(tr("Skeletal Animation"), listWidget );
+	new QListWidgetItem(tr("Godrays"), listWidget );
 
 	QListWidgetItem* separator = new QListWidgetItem( "Work In Progress" );
 	separator->setSizeHint(QSize(10,30));
 	separator->setFlags( Qt::NoItemFlags );
 	listWidget->addItem(separator);
 
-	new QListWidgetItem(tr("Skeletal Animation"), listWidget );
-
-	listWidget->addItem(separator);
-	new QListWidgetItem(tr("Godrays"), listWidget );
+	new QListWidgetItem(tr("Dual Depth Peeling"), listWidget);
 	new QListWidgetItem(tr("Instancing"), listWidget );
 	new QListWidgetItem(tr("Tesselation"), listWidget );
 	new QListWidgetItem(tr("Ray Tracing"), listWidget );

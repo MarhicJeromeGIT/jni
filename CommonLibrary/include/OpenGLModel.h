@@ -9,7 +9,7 @@
 
 #include "Mesh.h"
 #include "Model.h"
-#include <Material.h>
+#include <MaterialDrawPass.h>
 #include "Renderer.h"
 #include "AABB.h"
 #include <queue>

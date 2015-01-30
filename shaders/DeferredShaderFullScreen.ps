@@ -1,0 +1,26 @@
+uniform sampler2D NormalMap;
+uniform sampler2D VertexMap; // world position of each "pixel"
+uniform vec4 lightPosition;
+
+varying vec2 texCoord;
+
+void main()
+{
+	vec4 normal = texture2D( NormalMap, texCoord );
+	vec4 eyePos = texture2D( VertexMap, texCoord );
+		
+	vec3 L = normalize(lightPosition.rgb);
+	vec3 N = normalize(normal.rgb);
+	float diffuse = max(0.0, dot(N,L) );
+	float specular = 0.0;
+
+	if(diffuse > 0.0)
+	{
+		vec3 E = normalize(-eyePos.rgb);
+		vec3 R = reflect(-L, N);
+		specular = pow(clamp(dot(R, E), 0.0, 1.0), 16.0 );
+	}
+
+	gl_FragColor = diffuse * vec4(1.0,1.0,1.0,1.0) + specular * vec4(1.0,1.0,1.0,1.0);
+	gl_FragColor.a = normal.a;
+}

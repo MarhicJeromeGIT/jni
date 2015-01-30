@@ -35,7 +35,7 @@ using glm::vec4;
 #include "PyroclasticNoiseScene.h"
 #include "VikingScene.h"
 #include "TTFont.h"
-
+#include "DeferredRenderingScene.h"
 
 SceneManager::SceneManager()
 {
@@ -49,6 +49,7 @@ SceneManager::SceneManager()
 
 	typedef pair<string,Scene*> SceneItem;
 		
+	scenesItemArray.push_back( SceneItem( "Deferred Rendering",new DeferredScene( this ) ) );
 	scenesItemArray.push_back( SceneItem( "Glass Refraction/Reflection",new BuddhaGlass( this ) ) );
 	scenesItemArray.push_back( SceneItem( "Grass Scene",new GrassScene( this ) ) );
 	scenesItemArray.push_back( SceneItem( "Dual Depth Peeling",new BuddhaScene( this ) ) );
@@ -59,7 +60,7 @@ SceneManager::SceneManager()
 	scenesItemArray.push_back( SceneItem( "Instancing",new InstancingScene( this ) ) );
 	scenesItemArray.push_back( SceneItem( "Ray Tracing",new PyroclasticNoiseScene( this ) ) );
 	scenesItemArray.push_back( SceneItem( "Movement Blur",new VikingScene( this ) ) );
-	 
+	
 	currentScene = -1;
 	ready = false;
 }

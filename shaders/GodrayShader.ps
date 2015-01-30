@@ -12,6 +12,8 @@ const int NB_SAMPLE = 100;
 
 void main()
 { 
+	vec4 originalColor = texture2D(tex, texCoord);
+	
 	vec2 deltaCoord = ( LightPosScreen - texCoord);
 	deltaCoord /= NB_SAMPLE;
 	float illuminationDecay = 1.0;

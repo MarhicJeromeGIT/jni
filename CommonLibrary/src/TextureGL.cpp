@@ -166,7 +166,7 @@ TextureGL* TextureManager::CombinedTexture( const std::string& name, TEXTURE_COM
 
 	shader->enable( *ShaderParams::get() );
 	shader->uTextureSampler1->setValue( tex1->getTexId() );
-	shader->uTextureSampler2->setValue( tex1->getTexId() );
+	shader->uTextureSampler2->setValue( tex2->getTexId() );
 	shader->uTextureMix->setValue( combine == TEXTURE_COMBINATION::MIX );
 	shader->uTextureMul->setValue( combine == TEXTURE_COMBINATION::MULTIPLY );
 	shader->uTextureDiff->setValue( false );//combine == TEXTURE_COMBINATION::DIFFERENCE );

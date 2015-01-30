@@ -34,10 +34,12 @@ vec3 lightPosition = vec3(-5.0,5.0,20.0);
 
 FramebufferObject* fbo = NULL;
 QOpenGLFramebufferObject* fbo2 = NULL;
+QOpenGLFramebufferObject* fbo3 = NULL;
 
 const int fboN = 512;
 glm::vec2 lightposScreen;
 
+// http://http.developer.nvidia.com/GPUGems3/gpugems3_ch13.html
 GodrayScene::GodrayScene(SceneManager* manager) : Scene(manager)
 {
 	decay    = 0.95f;
@@ -145,16 +147,10 @@ void GodrayScene::init()
 
 	TextureGL* lightShaft = new TextureGL( fbo2->texture() );
 	TextureGL* lightDepth = TextureManager::get()->createDepthTexture( "lightDepth", 512, 512 );
-
-	// FBO
-	fbo = new FramebufferObject();
-	fbo->AttachTexture(GL_TEXTURE_2D, texindex, GL_COLOR_ATTACHMENT0);
-	fbo->Disable();
-
-	delete[] data;
-
+	
 	fboImage = new Image( vec3(0.15,0.15,0.0), lightShaft );
-	fboImage->scale = vec3(0.15,0.15,1.0);
+	fboImage->scale = vec3(0.30,0.30,1.0);
+
 
 	godrayShader = new GodrayShader();
 	godrayShader->load();
@@ -164,7 +160,6 @@ void GodrayScene::init()
 	vec2 uv[]   = { vec2(0.0,0.0), vec2(1.0,0.0), vec2(1.0,1.0), vec2(0.0,1.0) };
 	unsigned short tri[2*3] = { 0,1,2, 0,2,3 };
 	fullscreenQuad->updateGeometry( vert, uv, 4, tri, 2  );
-
 
 	QIntTweakable* lightXTweakable = new QIntTweakable( "pos light X",
 		[](int p){ 
@@ -223,7 +218,7 @@ void GodrayScene::drawFBO()
 	fbo2->bind();
 	
 	glViewport( 0, 0, fboN, fboN );
-	glClearColor(0.0,0.0, 0.0,1.0);
+	glClearColor(0.0,0.0, 0.0,0.0);
 	glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
 
 	GLenum buffers[] = { GL_COLOR_ATTACHMENT0 };
@@ -265,7 +260,6 @@ void GodrayScene::drawLightShaft()
 void GodrayScene::draw()
 {
 	Renderer::get()->beginFrame();
-
 	float rapport = ShaderParams::get()->win_x / ShaderParams::get()->win_y;
 	ShaderParams::get()->projectionMatrix = glm::perspective(70.0f, rapport, 0.1f, 1000.0f);
 	ShaderParams::get()->viewMatrix = glm::lookAt( sceneManager->camera->position, vec3(0,0,0), vec3(0,1,0) );
@@ -273,11 +267,13 @@ void GodrayScene::draw()
 	animatedModel->Draw(COLOR);
 	lightModel->Draw(COLOR);
 	skybox->Draw(COLOR);
-	
 	Renderer::get()->endFrame();
 
 	// Composite
+	glDepthMask(GL_FALSE);
 	drawLightShaft();
+	glDepthMask(GL_TRUE);
+
 
 	Renderer::get()->beginFrame();
 	ShaderParams::get()->projectionMatrix = glm::ortho(0.0f,1.0f,0.0f,1.0f,0.1f,1000.0f);

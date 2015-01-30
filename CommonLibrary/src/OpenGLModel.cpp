@@ -258,7 +258,6 @@ static TextureGL* loadTexture( const string& basename )
 bool OpenGLModel::loadMesh( const Model::Mesh* mesh )
 {
 	GLenum errCode;
-	const GLubyte *errString;
 	if ((errCode = glGetError()) != GL_NO_ERROR) {
 	  LOGE("ERROR before loadMesh %d",errCode);
 	}

@@ -19,6 +19,7 @@
 #include "GlassShader.h"
 #include "GrassShader.h"
 #include "InstancingShader.h"
+#include "DeferredShader.h"
 
 using namespace glm;
 
@@ -1738,3 +1739,55 @@ Shader* Material3DSlice::getShader( MATERIAL_DRAW_PASS Pass )
 }
 
 #endif
+
+//************************************//
+//  Material Deferred
+//************************************//
+
+MaterialDeferred::MaterialDeferred() : Material( MATERIAL_DEFERRED )
+{
+	shader = (DeferredPassShader*) ShaderManager::get()->getShader( SHADER_TYPE::DEFERRED_SHADER );
+}
+
+void MaterialDeferred::SetupUniforms( MATERIAL_DRAW_PASS Pass )
+{
+}
+
+Shader* MaterialDeferred::getShader( MATERIAL_DRAW_PASS Pass )
+{
+	return shader;
+}
+
+//************************************//
+//  Material Deferred : Full screen shading
+//************************************//
+
+MaterialDeferredFullScreen::MaterialDeferredFullScreen() : Material( MATERIAL_DEFERRED_FULLSCREEN )
+{
+	shader = (DeferredShaderFullScreen*) ShaderManager::get()->getShader( SHADER_TYPE::DEFERRED_SHADER_FULLSCREEN );
+	normalMap = NULL;
+	vertexMap = NULL;
+}
+
+void MaterialDeferredFullScreen::setNormalMap( TextureGL* map )
+{
+	normalMap = map;
+}
+
+void MaterialDeferredFullScreen::setVertexMap( TextureGL* map )
+{
+	vertexMap = map;
+}
+
+void MaterialDeferredFullScreen::SetupUniforms( MATERIAL_DRAW_PASS Pass )
+{
+	if( normalMap )
+		shader->uNormalMap->setValue(normalMap->getTexId());
+	if( vertexMap )
+		shader->uVertexMap->setValue(vertexMap->getTexId());
+}
+
+Shader* MaterialDeferredFullScreen::getShader( MATERIAL_DRAW_PASS Pass )
+{
+	return shader;
+}
