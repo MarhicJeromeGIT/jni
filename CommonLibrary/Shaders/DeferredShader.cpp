@@ -28,8 +28,12 @@ void DeferredPassShader::load()
 	uNormalMatrix = (UniformMat3f*) GetUniformByName("NormalMatrix");
 	assert(uNormalMatrix != 0);
 
+	uTextureSampler = (UniformSampler2D*)GetUniformByName("tex");
+	assert(uTextureSampler != 0 );
+
 	vertexAttribLoc = glGetAttribLocation( getProgram(), "vertexPosition" );
 	normalAttribLoc = glGetAttribLocation( getProgram(), "normalOrientation" );
+	texCoordAttribLoc = glGetAttribLocation( getProgram(), "iTexCoord" );
 }
 
 DeferredPassShader::~DeferredPassShader(void)
@@ -47,12 +51,14 @@ void DeferredPassShader::enable( const ShaderParams& params )
 
 	glEnableVertexAttribArray(vertexAttribLoc);
 	glEnableVertexAttribArray(normalAttribLoc);
+	glEnableVertexAttribArray(texCoordAttribLoc);
 }
 
 void DeferredPassShader::disable()
 {
 	glDisableVertexAttribArray(vertexAttribLoc);
 	glDisableVertexAttribArray(normalAttribLoc);
+	glDisableVertexAttribArray(texCoordAttribLoc);
 	Shader::disable();
 }
 
@@ -71,6 +77,8 @@ void DeferredPassShader::Draw( Mesh* m )
 	glVertexAttribPointer( vertexAttribLoc, 3, GL_FLOAT, GL_FALSE, 0, 0);
 	glBindBuffer( GL_ARRAY_BUFFER, mesh->normalBuffer );
 	glVertexAttribPointer( normalAttribLoc, 3, GL_FLOAT, GL_FALSE, 0, 0);
+	glBindBuffer( GL_ARRAY_BUFFER, mesh->texCoordBuffer );
+	glVertexAttribPointer( texCoordAttribLoc, 2, GL_FLOAT, GL_FALSE, 0, 0);
 	glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, mesh->indicesBuffer );
 
 	if( mesh->nbTriangles < 20000 )
@@ -120,6 +128,12 @@ void DeferredShaderFullScreen::load()
 	uLightPosition = (UniformVec4f*) GetUniformByName("lightPosition");
 	assert(uLightPosition != 0);
 
+	uLightColor = (UniformVec4f*) GetUniformByName("lightColor");
+	assert(uLightColor != 0);
+
+	uLightAttenuation = (UniformFloat*) GetUniformByName("lightAttenuation");
+	assert(uLightAttenuation != 0);
+
 	vertexAttribLoc   = glGetAttribLocation( getProgram(), "vertexPosition" );
 	texCoordAttribLoc = glGetAttribLocation( getProgram(), "iTexCoord" );
 }
@@ -132,7 +146,7 @@ void DeferredShaderFullScreen::enable( const ShaderParams& params )
 {
 	Shader::enable( params );
 	
-	uLightPosition->setValue( params.viewMatrix * params.lights[0].lightPosition );
+	uLightAttenuation->setValue( params.lights[0].lightAttenuation );
 
 	glEnableVertexAttribArray(vertexAttribLoc);
 	glEnableVertexAttribArray(texCoordAttribLoc);

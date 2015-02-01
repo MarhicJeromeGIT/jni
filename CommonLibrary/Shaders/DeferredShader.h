@@ -16,9 +16,11 @@ private:
 
 public:
 	UniformMat3f*  uNormalMatrix;
+	UniformSampler2D* uTextureSampler;
 
 	int vertexAttribLoc;
 	int normalAttribLoc;
+	int texCoordAttribLoc;
 
 	void enable( const ShaderParams& params );
 	void disable();
@@ -41,6 +43,8 @@ public:
 	UniformSampler2D* uNormalMap;
 	UniformSampler2D* uVertexMap;
 	UniformVec4f*     uLightPosition;
+	UniformVec4f*     uLightColor;
+	UniformFloat*     uLightAttenuation;
 
 	int vertexAttribLoc;
 	int texCoordAttribLoc;

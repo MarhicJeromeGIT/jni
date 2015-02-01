@@ -11,6 +11,7 @@ ShaderParams::ShaderParams()
 	{
 		lights[i].lightPosition = vec4(0,0,0,1);
 		lights[i].lightDiffuseColor = vec4(1.0,1.0,1.0,1.0);
+		lights[i].lightAttenuation = 1.0f;
 	}
 	// ambient color:
 	ambient = vec4(0.4,0.4,0.4,1.0);

@@ -63,6 +63,10 @@ void DeferredScene::init()
 	sphereModel->Save( DATA_PATH "sphereModel.txt" );
 	delete sphereModel;
 
+	floorModel = load_assimp_model( DATA_PATH "plane.dae" );
+	floorModel->Save( DATA_PATH "floorModel.txt" );
+	delete floorModel;
+	
 #endif
 
 	// setup the skybox
@@ -74,18 +78,26 @@ void DeferredScene::init()
 								DATA_PATH "skybox_texture_front.png",  DATA_PATH "skybox_texture_back.png" };
 	skybox  = new Skybox(skyboxGL, filename);
 
-	// Load various objects for the scene
+	// Load various objects for the scene and give them my custom material
 	sphereModel = new Model();
 	sphereModel->Load( DATA_PATH "sphereModel.txt" );
 	OpenGLStaticModel* sphereGL = new OpenGLStaticModel(sphereModel);
-	sphereInstance = new OpenGLStaticModelInstance( mat4(1.0), sphereGL );
-	sphereOriginalMaterial = sphereInstance->materials[0];
+	sphereInstance = new OpenGLStaticModelInstance( glm::translate(mat4(1.0), vec3(0.0,0.5,0.0) ), sphereGL );
 
-	deferredMaterial = new MaterialDeferred();
-
+	MaterialDeferred* sphereDeferredMaterial = new MaterialDeferred();
+	sphereDeferredMaterial->setTexture( sphereInstance->glModel->meshes[0].texture );
+	sphereInstance->materials[0] = sphereDeferredMaterial;
 
 	sceneManager->camera->position = glm::vec3(0,0,-10);
 
+	floorModel = new Model();
+	floorModel->Load( DATA_PATH "floorModel.txt" );
+	OpenGLStaticModel* floorGL = new OpenGLStaticModel(floorModel);
+	floorInstance = new OpenGLStaticModelInstance( glm::rotate( mat4(1.0), 0.0f, vec3(0.0f,0.0f,1.0f)), floorGL );
+
+	MaterialDeferred* floorDeferredMaterial = new MaterialDeferred();
+	floorDeferredMaterial->setTexture( floorInstance->glModel->meshes[0].texture );
+	floorInstance->materials[0] = floorDeferredMaterial;
 
 	// this is the so-called "G buffer" we will draw the infos to.
 	QOpenGLFramebufferObjectFormat fboFormat;
@@ -98,22 +110,34 @@ void DeferredScene::init()
  	assert( GbufferQT->isValid() );	
 	QOpenGLFramebufferObject* GbufferQT2= new QOpenGLFramebufferObject( 1024, 1024, fboFormat );
  	assert( GbufferQT2->isValid() );	
+	QOpenGLFramebufferObject* GbufferQT3 = new QOpenGLFramebufferObject( 1024, 1024, fboFormat );
+ 	assert( GbufferQT3->isValid() );	
+	QOpenGLFramebufferObject* GbufferQT4 = new QOpenGLFramebufferObject( 1024, 1024, fboFormat );
+ 	assert( GbufferQT4->isValid() );	
 
 	GbufferViewer = new Image( vec3(0.20,0.75,-10), new TextureGL(GbufferQT->texture()) );
 	GbufferViewer->scale = vec3(0.20,0.20,1.0);
 	GbufferViewer2 = new Image( vec3(0.20,0.45,-10), new TextureGL(GbufferQT2->texture()) );
 	GbufferViewer2->scale = vec3(0.20,0.20,1.0);
-
+	
 	//TextureGL* gbufferTex = TextureManager::get()->createRGBATexture("gbuffer", vec4(0.0,0.0,0.0,1.0), 1024, 1024 );
 	TextureGL* gbufferDepthTex = TextureManager::get()->createDepthTexture("gbufferdepth", 1024, 1024 );
+	TextureGL* lightbufferDepthTex = TextureManager::get()->createDepthTexture("ightbufferdepth", 1024, 1024 );
 
 	// WORKING ! That means my texture are somehow not suitable for framebuffer use. Use
 	// QT made texture for the time being.
 	Gbuffer = new FramebufferObject();
-	Gbuffer->AttachTexture(GL_TEXTURE_2D, GbufferQT->texture(), GL_COLOR_ATTACHMENT0);
-	Gbuffer->AttachTexture(GL_TEXTURE_2D, GbufferQT2->texture(), GL_COLOR_ATTACHMENT1);
+	Gbuffer->AttachTexture(GL_TEXTURE_2D, GbufferQT->texture(), GL_COLOR_ATTACHMENT0);  // NORMAL
+	Gbuffer->AttachTexture(GL_TEXTURE_2D, GbufferQT2->texture(), GL_COLOR_ATTACHMENT1); // VERTEX EYE POS
+	Gbuffer->AttachTexture(GL_TEXTURE_2D, GbufferQT3->texture(), GL_COLOR_ATTACHMENT2); // DIFFUSE COLOR (AMBIENT)
 	Gbuffer->AttachTexture(GL_TEXTURE_2D, gbufferDepthTex->getTexId(), GL_DEPTH_ATTACHMENT);
 	Gbuffer->Disable();
+
+	LightBuffer = new FramebufferObject();
+	LightBuffer->AttachTexture(GL_TEXTURE_2D, GbufferQT4->texture(), GL_COLOR_ATTACHMENT0);  // NORMAL
+	LightBuffer->AttachTexture(GL_TEXTURE_2D, lightbufferDepthTex->getTexId(), GL_DEPTH_ATTACHMENT);
+	LightBuffer->Disable();
+
 
 	// Quad for the fullscreen pass
 	fullscreenQuad = new DynamicMesh(4,2);
@@ -122,23 +146,52 @@ void DeferredScene::init()
 	unsigned short tri[2*3] = { 0,1,2, 0,2,3 };
 	fullscreenQuad->updateGeometry( vert, uv, 4, tri, 2  );
 
-	fullscreenMaterial = new MaterialDeferredFullScreen();
-	fullscreenMaterial->setNormalMap( new TextureGL( GbufferQT->texture() ) );
-	fullscreenMaterial->setVertexMap( new TextureGL( GbufferQT2->texture() ) );
-
+	fullscreenDiffuseMaterial = new MaterialGUI();
+	fullscreenDiffuseMaterial->setTexture( new TextureGL(GbufferQT3->texture()) );
+	
 	// Setup the lighting of the scene
-	const float lightDistance = 10.0f;
-	ShaderParams::get()->lights[0].lightPosition  = glm::vec4(lightDistance,15.0f,0.0f,1.0f);
-	ShaderParams::get()->lights[0].lightDiffuseColor = glm::vec4(1.0,1.0,1.0,1.0);
+	ShaderParams::get()->lights[0].lightAttenuation = 1.0f;
+
+	float lightDistance = 3.0f;
+	float lightAngle = 0.0f;
+
+	lightInstance = new OpenGLStaticModelInstance( mat4(1.0), sphereGL );
+
+	TextureGL* normalMapTex = new TextureGL(GbufferQT->texture());
+	TextureGL* vertexMapTex = new TextureGL(GbufferQT2->texture());
+	lightInfo L1 = { vec4(1.0,0.5,1.0,1.0), vec4(1.0,0.0,0.0,1.0), new MaterialDeferredFullScreen() };
+	L1.fullscreenMaterial->setNormalMap(normalMapTex);
+	L1.fullscreenMaterial->setVertexMap(vertexMapTex);
+	lightInfoVector.push_back( L1 );
+	lightInfo L2 = { vec4(1.0,0.5,0.0,1.0), vec4(0.0,1.0,0.0,1.0), new MaterialDeferredFullScreen() };
+	L2.fullscreenMaterial->setNormalMap(normalMapTex);
+	L2.fullscreenMaterial->setVertexMap(vertexMapTex);
+	lightInfoVector.push_back( L2 );
+	lightInfo L3 = { vec4(-1.0,0.5,-1.0,1.0), vec4(0.0,0.0,1.0,1.0), new MaterialDeferredFullScreen() };
+	L3.fullscreenMaterial->setNormalMap(normalMapTex);
+	L3.fullscreenMaterial->setVertexMap(vertexMapTex);
+	lightInfoVector.push_back( L3 );
+
 
 	// Setup some tweakables.
-	QIntTweakable* lightXTweakable = new QIntTweakable( "light angle",
-		[lightDistance](int angle){ 
-			ShaderParams::get()->lights[0].lightPosition.x = cos(((float) angle)*M_PI/180.0f) * lightDistance; 
-			ShaderParams::get()->lights[0].lightPosition.z = sin(((float) angle)*M_PI/180.0f) * lightDistance; 
+/*	QIntTweakable* lightXTweakable = new QIntTweakable( "light angle",
+		[this](int angle){ 
+			 this->lightAngle = angle;
+			ShaderParams::get()->lights[0].lightPosition.x = 3+cos(((float) this->lightAngle)*M_PI/180.0f) ;//*  this->lightDistance; 
+			ShaderParams::get()->lights[0].lightPosition.z = 1+sin(((float) this-> lightAngle)*M_PI/180.0f);// *  this->lightDistance; 
 		},
 		0 , 0, 365);
 	emit tweakableAdded( lightXTweakable );
+
+	QIntTweakable* lightDistanceTweakable = new QIntTweakable( "light distance",
+		[this](int distance){ 
+			 this->lightDistance = ((float)distance)/100.0f;
+			ShaderParams::get()->lights[0].lightPosition.y =  this->lightDistance;
+			ShaderParams::get()->lights[0].lightPosition.x = 3+cos(((float)  this->lightAngle)*M_PI/180.0f);// *  this->lightDistance; 
+			ShaderParams::get()->lights[0].lightPosition.z = 1+sin(((float)  this->lightAngle)*M_PI/180.0f);// *  this->lightDistance; 
+		},
+		lightDistance *100.0f , 0, 10.0f*100.0f);
+	emit tweakableAdded( lightDistanceTweakable );
 
 	QColorTweakable* lightColorTweakable = new QColorTweakable( "light color",
 		[](vec4 color){ 
@@ -147,6 +200,15 @@ void DeferredScene::init()
 		},
 		ShaderParams::get()->lights[0].lightDiffuseColor );
 	emit tweakableAdded( lightColorTweakable );
+*/
+
+	QFloatTweakable* lightAttenuationTweakable = new QFloatTweakable("attenuation",
+		[](float att){
+			ShaderParams::get()->lights[0].lightAttenuation = att;
+			cout<<"att = "<<att<<endl;
+	},
+	ShaderParams::get()->lights[0].lightAttenuation, 0.0f,4.0f );
+	emit tweakableAdded( lightAttenuationTweakable );
 
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -159,7 +221,6 @@ void DeferredScene::deinit()
 
 void DeferredScene::update(float dt)
 {
-
 }
 
 void DeferredScene::deferredPass()
@@ -170,8 +231,8 @@ void DeferredScene::deferredPass()
 	glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
 
 	// MRT Multiple Render Target
-	GLenum buffers[] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1 };
-	glDrawBuffers(2, buffers);
+	GLenum buffers[] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2 };
+	glDrawBuffers(3, buffers);
 
 	Renderer::get()->beginFrame();
 
@@ -180,9 +241,8 @@ void DeferredScene::deferredPass()
 	ShaderParams::get()->viewMatrix = glm::lookAt( sceneManager->camera->position, vec3(0,0,0), vec3(0,1,0) );
 
 	// That's just a test.
-	sphereInstance->materials[0] = deferredMaterial;
 	sphereInstance->Draw( COLOR );
-	sphereInstance->materials[0] = sphereOriginalMaterial;
+	floorInstance->Draw( COLOR );
 
 	Renderer::get()->endFrame();
 
@@ -201,22 +261,82 @@ void DeferredScene::fullscreenPass()
 	ShaderParams::get()->objectMatrix = mat4(1.0);
 
 	DrawCall drawcall;
-	drawcall.Pass     = MATERIAL_DRAW_PASS::GUI;
+	drawcall.Pass     = MATERIAL_DRAW_PASS::COLOR;
 	drawcall.modelMat = mat4(1.0);
 	drawcall.viewMat  = ShaderParams::get()->viewMatrix;
 	drawcall.projMat  = ShaderParams::get()->projectionMatrix;
 
-	Shader* shader = fullscreenMaterial->getShader(MATERIAL_DRAW_PASS::GUI);
+	Shader* shader = fullscreenDiffuseMaterial->getShader(MATERIAL_DRAW_PASS::COLOR);
 	if( shader != NULL )
 	{
-		drawcall.material = fullscreenMaterial;
+		drawcall.material = fullscreenDiffuseMaterial;
 		drawcall.mesh     = &(fullscreenQuad->mesh);
 		drawcall.transparencyMode = TRANSPARENCY_MODE::GL_SRC_ALPHA_GL_ONE_MINUS_SRC_ALPHA;
 		drawcall.hasTransparency = true;
+		drawcall.disableDepthWrite = true;
 		Renderer::get()->draw( drawcall );
 	}
 
 	Renderer::get()->endFrame();
+	Renderer::get()->beginFrame();
+
+	glBlendFunc(GL_ONE, GL_ONE);
+
+	for( int i=0; i < lightInfoVector.size(); i++ )
+	{
+		lightInfo& light = lightInfoVector[i];
+
+		light.fullscreenMaterial->setLightColor( light.Color );
+		light.fullscreenMaterial->setLightPosition( light.Position );
+		lightInstance->materials[0] = light.fullscreenMaterial;
+		lightInstance->objectMatrix =  glm::translate( mat4(1.0), vec3(light.Position) ) * glm::scale(mat4(1.0), vec3(3.0,3.0,3.0) );
+
+		Shader* shader = light.fullscreenMaterial->getShader(MATERIAL_DRAW_PASS::COLOR);
+		if( shader != NULL )
+		{
+			drawcall.material = light.fullscreenMaterial;
+			drawcall.mesh     = &(fullscreenQuad->mesh);
+			drawcall.transparencyMode = TRANSPARENCY_MODE::GL_ONE_GL_ONE;
+			drawcall.hasTransparency = true;
+			drawcall.disableDepthWrite = true;
+			Renderer::get()->draw( drawcall );
+		}
+	}
+
+	Renderer::get()->endFrame();
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+
+/*	LightBuffer->Bind();
+	glViewport(0,0,1024, 1024);
+	glClearColor(0.0,0.0, 0.0,0.0);
+	glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
+*/
+	// And now the localized phong shader for each light :
+/*	glBlendFunc(GL_SRC_ALPHA, GL_ONE); // additive blending
+	float rapport = ShaderParams::get()->win_x / ShaderParams::get()->win_y;
+	ShaderParams::get()->projectionMatrix = glm::perspective(70.0f, rapport, 0.1f, 1000.0f);
+	ShaderParams::get()->viewMatrix = glm::lookAt( sceneManager->camera->position, vec3(0,0,0), vec3(0,1,0) );
+
+	for( int i=0; i < lightInfoVector.size(); i++ )
+	{
+		lightInfo& light = lightInfoVector[i];
+
+		light.fullscreenMaterial->setLightColor( light.Color );
+		light.fullscreenMaterial->setLightPosition( light.Position );
+		lightInstance->materials[0] = light.fullscreenMaterial;
+		lightInstance->objectMatrix =  glm::translate( mat4(1.0), vec3(light.Position) ) * glm::scale(mat4(1.0), vec3(3.0,3.0,3.0) );
+
+		lightInstance->Draw(COLOR);
+	}
+
+	Renderer::get()->endFrame();
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+*/
+/*	LightBuffer->Disable();
+
+	glViewport(0,0,ShaderParams::get()->win_x, ShaderParams::get()->win_y);
+	glClearColor( 0.2f,0.2f,0.2f,1.0f );*/
 }
 
 void DeferredScene::draw()

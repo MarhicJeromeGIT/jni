@@ -845,8 +845,11 @@ class MaterialDeferred : public Material
 public:
 	DeferredPassShader* shader;
 
+	TextureGL* textureMap;
+
 public:
 	MaterialDeferred();
+	void setTexture( TextureGL* map );
 	virtual void SetupUniforms(MATERIAL_DRAW_PASS Pass);
 	Shader* getShader( MATERIAL_DRAW_PASS Pass );
 };
@@ -862,11 +865,16 @@ public:
 
 	TextureGL* normalMap;
 	TextureGL* vertexMap;
+
+	glm::vec4 lightColor;
+	glm::vec4 lightPosition;
 public:
 	MaterialDeferredFullScreen();
 	virtual void SetupUniforms(MATERIAL_DRAW_PASS Pass);
 	void setNormalMap( TextureGL* map );
 	void setVertexMap( TextureGL* map );
+	void setLightColor( glm::vec4 col );
+	void setLightPosition( glm::vec4 pos );
 	Shader* getShader( MATERIAL_DRAW_PASS Pass );
 };
 

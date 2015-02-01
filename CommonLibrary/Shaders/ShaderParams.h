@@ -24,6 +24,7 @@ struct Light
 	glm::vec4 lightDiffuseColor;
 	glm::vec3 lightSpecularColor;
 	float     lightShininess; // specular component
+	float     lightAttenuation;
 };
 
 // Singleton

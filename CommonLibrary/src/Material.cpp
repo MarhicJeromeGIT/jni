@@ -1747,10 +1747,18 @@ Shader* Material3DSlice::getShader( MATERIAL_DRAW_PASS Pass )
 MaterialDeferred::MaterialDeferred() : Material( MATERIAL_DEFERRED )
 {
 	shader = (DeferredPassShader*) ShaderManager::get()->getShader( SHADER_TYPE::DEFERRED_SHADER );
+	textureMap = NULL;
+}
+
+void MaterialDeferred::setTexture( TextureGL* map )
+{
+	textureMap = map;
 }
 
 void MaterialDeferred::SetupUniforms( MATERIAL_DRAW_PASS Pass )
 {
+	if( textureMap != NULL )
+		shader->uTextureSampler->setValue( textureMap->getTexId() );
 }
 
 Shader* MaterialDeferred::getShader( MATERIAL_DRAW_PASS Pass )
@@ -1785,6 +1793,18 @@ void MaterialDeferredFullScreen::SetupUniforms( MATERIAL_DRAW_PASS Pass )
 		shader->uNormalMap->setValue(normalMap->getTexId());
 	if( vertexMap )
 		shader->uVertexMap->setValue(vertexMap->getTexId());
+	shader->uLightColor->setValue( lightColor );
+	shader->uLightPosition->setValue( lightPosition );
+}
+
+void MaterialDeferredFullScreen::setLightColor( glm::vec4 col )
+{
+	lightColor = col;
+}
+
+void MaterialDeferredFullScreen::setLightPosition( glm::vec4 pos )
+{
+	lightPosition = pos;
 }
 
 Shader* MaterialDeferredFullScreen::getShader( MATERIAL_DRAW_PASS Pass )
