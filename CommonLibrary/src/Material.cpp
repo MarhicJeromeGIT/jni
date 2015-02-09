@@ -1811,3 +1811,38 @@ Shader* MaterialDeferredFullScreen::getShader( MATERIAL_DRAW_PASS Pass )
 {
 	return shader;
 }
+
+//***************
+// MaterialLightCombine
+//
+//****************
+
+MaterialLightCombine::MaterialLightCombine() : Material( MATERIAL_DEFERRED_LIGHT_COMBINE )
+{
+	shader = (DeferredShaderLightCombine*) ShaderManager::get()->getShader( DEFFERED_SHADER_LIGHT_COMBINE );
+	colorMap = NULL;
+	lightMap = NULL;
+}
+
+void MaterialLightCombine::setColorMap( TextureGL* map )
+{
+	colorMap = map;
+}
+
+void MaterialLightCombine::setLightMap( TextureGL* map )
+{
+	lightMap = map;
+}
+
+void MaterialLightCombine::SetupUniforms(MATERIAL_DRAW_PASS Pass)
+{
+	if( colorMap != NULL )
+		shader->uColorMap->setValue( colorMap->getTexId() );
+	if( lightMap != NULL )
+		shader->uLightMap->setValue( lightMap->getTexId() );
+}
+
+Shader* MaterialLightCombine::getShader( MATERIAL_DRAW_PASS Pass )
+{
+	return shader;
+}

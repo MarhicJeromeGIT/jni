@@ -66,6 +66,7 @@ ShaderManager::ShaderManager()
 	shaders[COLOR_TEXT_SHADER]           = new ColorTextShader();
 	shaders[DEFERRED_SHADER]             = new DeferredPassShader();
 	shaders[DEFERRED_SHADER_FULLSCREEN]  = new DeferredShaderFullScreen();
+	shaders[DEFFERED_SHADER_LIGHT_COMBINE] = new DeferredShaderLightCombine();
 	shaders[DIFFUSE_SHADER]              = new DiffuseShader();
 //	shaders[DIFFUSE_SHADOW_SHADER]       = new DiffuseShadowShader();
 //	shaders[DISCO_BALL_SHADER]           = new DiscoBallShader();

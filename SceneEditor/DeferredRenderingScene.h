@@ -20,7 +20,7 @@ class MaterialDeferred;
 class Material;
 class DynamicMesh;
 class MaterialDeferredFullScreen;
-class MaterialGUI;
+class MaterialLightCombine;
 
 struct lightInfo
 {
@@ -52,9 +52,11 @@ public:
 	Image* GbufferViewer;
 	Image* GbufferViewer2;
 	
-	MaterialGUI* fullscreenDiffuseMaterial;
+	MaterialLightCombine* lightCombineMaterial;
 
 	DynamicMesh* fullscreenQuad;
+
+	std::vector<glm::vec3> spherePositions;
 
 	std::vector<lightInfo> lightInfoVector;
 

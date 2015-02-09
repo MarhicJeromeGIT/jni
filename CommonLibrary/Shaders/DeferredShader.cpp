@@ -185,3 +185,85 @@ void DeferredShaderFullScreen::Draw( Mesh* m )
 		glDrawElements( GL_TRIANGLES, mesh->nbTriangles * 3, GL_UNSIGNED_INT, 0 );
 	}
 }
+
+
+//****************************************************************************
+// Deferred shading : Full Screen combine pass
+//
+//****************************************************************************
+DeferredShaderLightCombine::DeferredShaderLightCombine() : Shader()
+{
+}
+
+void DeferredShaderLightCombine::load()
+{
+	LOGT("SHADER","DeferredShaderLightCombine::load");
+
+	string vs = readFile_string( shader_path + string("LightCombineShader.vs") );
+	string ps = readFile_string( shader_path + string("LightCombineShader.ps") );
+	LoadShaderFromFile(vs,ps);
+
+	uModelMat = (UniformMat4f*) GetUniformByName("ModelMatrix");
+	assert(uModelMat != 0);
+
+	uViewMat = (UniformMat4f*) GetUniformByName("ViewMatrix");
+	assert(uViewMat != 0);
+
+	uProjectionMat = (UniformMat4f*) GetUniformByName("ProjectionMatrix");
+	assert(uProjectionMat != 0);
+
+	uColorMap = (UniformSampler2D*) GetUniformByName("colorMap");
+	assert(uColorMap != 0);
+
+	uLightMap = (UniformSampler2D*) GetUniformByName("lightMap");
+	assert(uLightMap != 0);
+
+	vertexAttribLoc   = glGetAttribLocation( getProgram(), "vertexPosition" );
+	texCoordAttribLoc = glGetAttribLocation( getProgram(), "iTexCoord" );
+}
+
+DeferredShaderLightCombine::~DeferredShaderLightCombine(void)
+{
+}
+
+void DeferredShaderLightCombine::enable( const ShaderParams& params )
+{
+	Shader::enable( params );
+	
+	glEnableVertexAttribArray(vertexAttribLoc);
+	glEnableVertexAttribArray(texCoordAttribLoc);
+}
+
+void DeferredShaderLightCombine::disable()
+{
+	glDisableVertexAttribArray(vertexAttribLoc);
+	glDisableVertexAttribArray(texCoordAttribLoc);
+	Shader::disable();
+}
+
+void DeferredShaderLightCombine::Draw( Mesh* m )
+{
+	GLenum errCode;
+
+	while ((errCode = glGetError()) != GL_NO_ERROR) {
+		 cout<<"erreur "<<errCode<<endl;
+	}
+
+	InternalMesh* mesh = (InternalMesh*) m;
+	Clean();
+
+	glBindBuffer( GL_ARRAY_BUFFER, mesh->vertexBuffer );
+	glVertexAttribPointer( vertexAttribLoc, 3, GL_FLOAT, GL_FALSE, 0, 0);
+	glBindBuffer( GL_ARRAY_BUFFER, mesh->texCoordBuffer );
+	glVertexAttribPointer( texCoordAttribLoc, 2, GL_FLOAT, GL_FALSE, 0, 0);
+	glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, mesh->indicesBuffer );
+
+	if( mesh->nbTriangles < 20000 )
+	{
+		glDrawElements( GL_TRIANGLES, mesh->nbTriangles * 3, GL_UNSIGNED_SHORT, 0 );
+	}
+	else
+	{
+		glDrawElements( GL_TRIANGLES, mesh->nbTriangles * 3, GL_UNSIGNED_INT, 0 );
+	}
+}

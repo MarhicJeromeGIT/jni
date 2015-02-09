@@ -29,7 +29,7 @@ public:
 };
 
 //****************************************************************************
-// Deferred shading : Full screen pass
+// Deferred shading : Lighting pass
 //
 //****************************************************************************
 class DeferredShaderFullScreen : public Shader
@@ -54,3 +54,28 @@ public:
 	void Draw( Mesh* mesh);
 	void load();
 };
+
+//****************************************************************************
+// Deferred shading : Full Screen combine pass
+//
+//****************************************************************************
+class DeferredShaderLightCombine : public Shader
+{
+	friend class ShaderManager;
+private:
+	DeferredShaderLightCombine(void);
+	~DeferredShaderLightCombine(void);
+
+public:
+	UniformSampler2D* uColorMap;
+	UniformSampler2D* uLightMap;
+
+	int vertexAttribLoc;
+	int texCoordAttribLoc;
+
+	void enable( const ShaderParams& params );
+	void disable();
+	void Draw( Mesh* mesh);
+	void load();
+};
+

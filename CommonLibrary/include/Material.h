@@ -58,6 +58,7 @@ class GrassShadowProjectionShader;
 class InstancingShader;
 class DeferredPassShader;
 class DeferredShaderFullScreen;
+class DeferredShaderLightCombine;
 
 #ifndef __ANDROID__ 
 class TextureSliceShader;
@@ -97,6 +98,7 @@ enum MATERIAL_TYPE // un material - un shader
 	MATERIAL_SKYBOX,
 	MATERIAL_DEFERRED,
 	MATERIAL_DEFERRED_FULLSCREEN,
+	MATERIAL_DEFERRED_LIGHT_COMBINE,
 };
 
 class Material
@@ -878,4 +880,19 @@ public:
 	Shader* getShader( MATERIAL_DRAW_PASS Pass );
 };
 
+class MaterialLightCombine : public Material
+{
+private:
+	DeferredShaderLightCombine* shader;
+
+	TextureGL* colorMap;
+	TextureGL* lightMap;
+
+public:
+	MaterialLightCombine();
+	void setColorMap( TextureGL* map );
+	void setLightMap( TextureGL* map );
+	virtual void SetupUniforms(MATERIAL_DRAW_PASS Pass);
+	Shader* getShader( MATERIAL_DRAW_PASS Pass );
+};
 #endif

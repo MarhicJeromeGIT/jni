@@ -1,0 +1,13 @@
+uniform sampler2D colorMap;
+uniform sampler2D lightMap;
+
+varying vec2 texCoord;
+
+void main()
+{
+	vec4 color = texture2D(colorMap, texCoord );
+	vec4 light = texture2D(lightMap, texCoord );
+	float ambient = 0.3;
+	vec3 final = color.rgb * light.rgb * ambient;
+	gl_FragColor = vec4( final, color.a );
+}
