@@ -11,7 +11,6 @@ using namespace std;
 #endif
 */
 
-#include <vector>
 #include <map>
 class Uniform;
 class UniformMat4f;
@@ -119,6 +118,12 @@ protected:
 
 	GLuint checkCompileStatus(GLuint shader, GLint *status);
 
+
+	// Will have to merge this later
+	// return true if successful.
+	bool newCompileProgram(const string& vertexSource, const string& fragmentSource);
+	const std::string& getError();
+	std::string errorString;
 public:
 
 	static std::string shader_path;

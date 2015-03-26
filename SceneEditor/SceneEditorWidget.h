@@ -1,9 +1,8 @@
 
 
-#ifndef QT_MAIN_WINDOW_H
-#define QT_MAIN_WINDOW_H
+#ifndef QT_SCENE_EDITOR_WIDGET_H
+#define QT_SCENE_EDITOR_WIDGET_H
 
-#include <QMainWindow>
 #include <qslider.h>
 #include <qlineedit.h>
 #include <map>
@@ -19,10 +18,6 @@ using namespace std;
 using namespace boost;
 using namespace boost::multi_index;
 
-namespace Ui {
-class mainwindow;
-}
-
 class GLWidget;
 class QTweakable;
 class QHBoxLayout;
@@ -32,24 +27,28 @@ class QVBoxLayout;
 // Main Window
 //
 //**********************************
-class mainwindow : public QWidget
+class SceneEditorWidget : public QWidget
 {
     Q_OBJECT
 
+public slots: 
+     void tweakableAdded(QTweakable*);
+	 void currentRowChanged ( int index );
+
+signals:
+	//void signalTweaksReceived();
+
 public:
-
-	QWidget* shaderEditorWidget;
-	QWidget* sceneEditorWidget;
-
+	GLWidget* glWidget;
 	QHBoxLayout *mainLayout;
 	QVBoxLayout* tweakableLayout;
 
 	QListWidget* listWidget;
 public:
-    mainwindow();
-    ~mainwindow();
+    SceneEditorWidget();
+    ~SceneEditorWidget();
 
 };
 
 
-#endif // QT_MAIN_WINDOW_H
+#endif // QT_SCENE_EDITOR_WIDGET_H

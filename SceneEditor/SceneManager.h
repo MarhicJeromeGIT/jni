@@ -41,10 +41,13 @@ public:
 	std::vector< std::pair<std::string,Scene*> > scenesItemArray;
 
 	int currentScene;
+	bool isGLInit;
 	bool ready;
 
 	bool keypress[MY_KEY::MAX_KEYS];
 
+private:
+	void SetAndInitCurrentScene(int oldScene, int newScene);
 };
 
 #endif

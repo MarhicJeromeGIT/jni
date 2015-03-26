@@ -2,6 +2,7 @@
 #define GL_WIDGET_H
 
 #define QT_NO_OPENGL_ES_2
+#include <GL/glew.h>
 #include <qwidget.h>
 #include <qopengl.h>
 #include <QtOpenGL\qgl.h>

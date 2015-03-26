@@ -36,9 +36,11 @@ using glm::vec4;
 #include "VikingScene.h"
 #include "TTFont.h"
 #include "DeferredRenderingScene.h"
+#include "ShaderEditorScene.h"
 
 SceneManager::SceneManager()
 {
+	isGLInit = false;
 	camera = new Camera();
 	camera_distance = 3.0f;
 
@@ -60,7 +62,7 @@ SceneManager::SceneManager()
 	scenesItemArray.push_back( SceneItem( "Instancing",new InstancingScene( this ) ) );
 	scenesItemArray.push_back( SceneItem( "Ray Tracing",new PyroclasticNoiseScene( this ) ) );
 	scenesItemArray.push_back( SceneItem( "Movement Blur",new VikingScene( this ) ) );
-	
+	scenesItemArray.push_back( SceneItem( "ShaderEditorScene", new ShaderEditorScene( this) ) );
 	currentScene = -1;
 	ready = false;
 }
@@ -95,7 +97,13 @@ void SceneManager::init()
 	ShaderManager::get()->setShaderPath(SHADER_PATH);
 	ShaderManager::get()->reloadShaders();
 	TTFont::setFontPath("C:\\Users\\XiongBaoBao\\0101GravityBang\\Data\\Data\\");
+	isGLInit = true;
 
+	// If we already decided which scene to use, init it :
+	if( currentScene != -1 )
+	{
+		SetAndInitCurrentScene( -1, currentScene );
+	}
 }
 
 void SceneManager::deinit()
@@ -124,6 +132,20 @@ void SceneManager::resizeGL( int width, int height )
 	ShaderParams::get()->win_y = height;
 }
 
+void SceneManager::SetAndInitCurrentScene(int oldScene, int newScene)
+{
+	ready = false;
+	if( oldScene >=0 && oldScene < scenesItemArray.size() ) 
+	{
+		scenesItemArray[oldScene].second->deinit();
+	}
+	
+	scenesItemArray[newScene].second->init();
+	currentScene = newScene;
+
+	ready = true;		
+}
+
 void SceneManager::setScene( const std::string& sceneName )
 {
 	// look for the index of this new scene by comparing the name:
@@ -133,14 +155,14 @@ void SceneManager::setScene( const std::string& sceneName )
 		{
 			if( currentScene != index ) // different scene
 			{
-				ready = false;
-				if( currentScene >=0 && currentScene < scenesItemArray.size() ) 
+				if( isGLInit )
 				{
-					scenesItemArray[currentScene].second->deinit();
+					SetAndInitCurrentScene(currentScene,index);
 				}
-				currentScene = index;
-				scenesItemArray[currentScene].second->init();
-				ready = true; 
+				else //we will do it after we have inited opengl
+				{
+					currentScene = index;
+				}
 				break;
 			}
 		}

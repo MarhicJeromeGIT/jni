@@ -179,6 +179,7 @@ Shader::Shader()
 	_program = -1;
 	vertexShader = -1;
 	fragmentShader = -1;
+	errorString = "no error";
 }
 
 void Shader::GetUniforms()
@@ -399,7 +400,6 @@ void Shader::NotifyDirty(ICleanable *value)
 
 GLuint Shader::checkCompileStatus(GLuint shader, GLint *status)
 {
-	char log[2048];
 	int len;
     glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &len);
 	if (len > 1)
@@ -407,16 +407,19 @@ GLuint Shader::checkCompileStatus(GLuint shader, GLint *status)
 		GLchar* log_string = new char[len + 1];
 		glGetShaderInfoLog(shader, len, 0, log_string);
 		LOGE("Log found : \n%s", log_string);
+		errorString = std::string(log_string);
 		delete log_string;
 		return 0;
 	}
 
+	char log[2048];
     glGetShaderiv(shader, GL_COMPILE_STATUS, status);
     if (!(*status))
     {
          glGetShaderInfoLog(shader, 2048, (GLsizei*)&len, log);
          LOGE("Error: shader %s", log);
          glDeleteShader(shader);
+		 errorString = std::string(log);
          return 0;
     }
     return 1;
@@ -533,4 +536,61 @@ GLuint Shader::compileProgram(const string& vsource, const string& gsource, cons
 
 
     return program;
+}
+
+const std::string& Shader::getError()
+{
+	return errorString;
+}
+
+bool Shader::newCompileProgram(const string& vertexSource, const string& fragmentSource)
+{
+	GLuint newVertexShader   = glCreateShader(GL_VERTEX_SHADER);
+    GLuint newFragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
+    GLint compiled = 0;
+
+	 // Remove everything after the closing bracket "}"
+	 string vsource2 = string(vertexSource);
+	 vsource2.resize( vsource2.find_last_of('}') +1 );
+	 const char* verterChar = vsource2.c_str();
+	 glShaderSource(newVertexShader, 1, &verterChar, 0);
+
+	 string fsource2 = string(fragmentSource); 
+	 fsource2.resize( fsource2.find_last_of('}') +1 );
+	 const char* fragChar = fsource2.c_str();
+	 glShaderSource(newFragmentShader, 1, &fragChar, 0);
+
+    glCompileShader(newVertexShader);
+    if ( checkCompileStatus(newVertexShader, &compiled) == 0) 
+	{
+       return false;
+    }
+
+    glCompileShader(newFragmentShader);
+    if ( checkCompileStatus(newFragmentShader, &compiled) == 0) {
+		return false;
+    }
+
+    GLuint program = glCreateProgram();
+    glAttachShader(program, newVertexShader);
+    glAttachShader(program, newFragmentShader);
+    glLinkProgram(program);
+
+    // check if program linked
+    GLint success = 0;
+    glGetProgramiv(program, GL_LINK_STATUS, &success);
+
+    if (!success) {
+        char temp[10000];
+        glGetProgramInfoLog(program, 10000, 0, temp);
+        glDeleteProgram(program);
+        program = 0;
+		errorString = temp;
+		return false;
+    }
+
+	vertexShader = newVertexShader;
+	fragmentShader = newFragmentShader;
+    _program = program;
+	return true;
 }
