@@ -22,6 +22,9 @@ public:
 	GLint _location;
 	bool _dirty; 
 	ICleanableObserver* _observer; // le shader
+
+	template< class T >
+	void setValue(T t){}
 };
 
 class UniformFloat : public Uniform
@@ -159,6 +162,7 @@ public:
 
 	glm::mat4& getValue();
 	void setValue(const glm::mat4& v );
+	void setValuePtr(const glm::mat4* v);
 	//void setValue(const float* v, int nbValues );
 
 	void Clean();

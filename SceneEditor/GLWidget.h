@@ -7,7 +7,7 @@
 #include <qopengl.h>
 #include <QtOpenGL\qgl.h>
 #include <qtimer.h>
-
+class Scene;
 class SceneManager;
 
 class GLWidget : public QGLWidget
@@ -26,7 +26,7 @@ public:
 
 	SceneManager* sceneManager;
 	void setScene( const std::string& sceneName );
-
+	Scene* getScene( const std::string& sceneName );
 
 protected:
     void initializeGL();

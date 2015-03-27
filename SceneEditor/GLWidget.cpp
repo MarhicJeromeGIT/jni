@@ -54,6 +54,11 @@ void GLWidget::setScene( const std::string& sceneName )
 	sceneManager->setScene( sceneName );
 }
 
+Scene* GLWidget::getScene( const std::string& sceneName )
+{
+	return sceneManager->getScene( sceneName );
+}
+
 void GLWidget::initializeGL()
 {
 	sceneManager->init();

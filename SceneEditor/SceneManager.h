@@ -37,6 +37,7 @@ public:
 	float camera_distance;
 
 	void setScene( const std::string& sceneName );
+	Scene* getScene( const std::string& sceneName );
 
 	std::vector< std::pair<std::string,Scene*> > scenesItemArray;
 

@@ -98,7 +98,7 @@ public:
 
 class Shader : public ICleanableObserver
 {
-private:
+protected:
 	static GLuint currentProgram;
 	
 	vector<ICleanable*> _dirtyUniform;
@@ -122,10 +122,10 @@ protected:
 	// Will have to merge this later
 	// return true if successful.
 	bool newCompileProgram(const string& vertexSource, const string& fragmentSource);
-	const std::string& getError();
+	
 	std::string errorString;
 public:
-
+	const std::string& getErrorString();
 	static std::string shader_path;
 
 	Shader();

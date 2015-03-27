@@ -212,6 +212,7 @@ public:
 	void setMaterialDiffuseColor(const std::string& materialName, const glm::vec4& color );
 	void setMaterialDiffuseColorMix(const std::string& materialName, const glm::vec4& color1, const glm::vec4& color2 );
 	void setMaterial( const std::string& materialName, Material* mat );
+	void setMaterial( int materialIndex, Material* mat );
 	TextureGL* getMaterialDiffuseTexture( const std::string& materialName ); // houlala
 	void setMaterialDiffuseTexture( const std::string& materialName, TextureGL* diffuseTex );
 	void setMaterialSpecularTexture( const std::string& materialName, TextureGL* diffuseTex );

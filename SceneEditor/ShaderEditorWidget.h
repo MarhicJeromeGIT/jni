@@ -11,20 +11,20 @@
 #include <QWidget>
 #include <QListWidget>
 #include <qtextedit.h>
-#include <Shader.h>
 using namespace std;
-
+#include <qlineedit.h>
+#include <qcombobox.h>
 #include <boost/bind.hpp>
 #include <boost/bimap.hpp>
 using namespace boost;
 using namespace boost::multi_index;
+#include <ShaderEditorScene.h>
 
 class GLWidget;
 class QTweakable;
 class QHBoxLayout;
 class QVBoxLayout;
 class Mesh;
-class MyShader;
 
 //**********************************
 // ShaderEditorWidget : compile shaders and view the result in real time
@@ -45,21 +45,27 @@ public:
 	QVBoxLayout* tweakableLayout;
 	QTextEdit* VertexShaderEdit;
 	QTextEdit* FragmentShaderEdit;
-
-	MyShader* customShader;
+	QVBoxLayout* uniformsZone;
 public:
     ShaderEditorWidget();
     ~ShaderEditorWidget();
 
+private:
+	ShaderEditorScene* shaderScene;
 };
 
-class MyShader : public Shader
+struct UniformWidget : public QWidget
 {
-public:
-	MyShader();
-	bool compile(const std::string& vertexSource, const std::string& fragmentSource);
+	UniformWidget();
+	QLineEdit* uniformName;
+	QComboBox* uniformChoice;
+};
 
-	void Draw(Mesh* mesh);
+struct AttributeWidget : public QWidget
+{
+	AttributeWidget();
+	QLineEdit* attributeName;
+	QComboBox* attributeChoice;
 };
 
 #endif // QT_SHADER_EDITOR_WIDGET_H

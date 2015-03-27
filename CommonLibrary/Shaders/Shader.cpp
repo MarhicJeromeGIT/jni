@@ -538,7 +538,7 @@ GLuint Shader::compileProgram(const string& vsource, const string& gsource, cons
     return program;
 }
 
-const std::string& Shader::getError()
+const std::string& Shader::getErrorString()
 {
 	return errorString;
 }
@@ -561,6 +561,9 @@ bool Shader::newCompileProgram(const string& vertexSource, const string& fragmen
 	 glShaderSource(newFragmentShader, 1, &fragChar, 0);
 
     glCompileShader(newVertexShader);
+	int size =0;
+	char source[1000];
+	glGetShaderSource(newVertexShader, 1000, &size, source);
     if ( checkCompileStatus(newVertexShader, &compiled) == 0) 
 	{
        return false;

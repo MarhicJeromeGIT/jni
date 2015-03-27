@@ -346,6 +346,11 @@ void UniformMat4f::setValue(const glm::mat4& v)
 	_nbValues = 1;
 }
 
+void UniformMat4f::setValuePtr(const glm::mat4* v)
+{
+	setValue(*v);
+}
+
 void UniformMat4f::Clean()
 {
 	glUniformMatrix4fv(_location, 1, false, &_value[0][0] );	

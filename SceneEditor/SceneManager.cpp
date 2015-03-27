@@ -169,6 +169,19 @@ void SceneManager::setScene( const std::string& sceneName )
 	}
 }
 
+Scene* SceneManager::getScene( const std::string& sceneName )
+{
+	// look for the index of this new scene by comparing the name:
+	for( unsigned int index = 0 ; index < scenesItemArray.size(); index++ )
+	{
+		if( sceneName == scenesItemArray[index].first )
+		{
+			return scenesItemArray[index].second;
+		}
+	}
+	return nullptr;
+}
+
 void SceneManager::mouseMoveEvent( int x, int y )
 {	
 	x -= 0.5*ShaderParams::get()->win_x;

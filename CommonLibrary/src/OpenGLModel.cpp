@@ -619,6 +619,12 @@ void OpenGLStaticModelInstance::setMaterialDiffuseColorMix(const std::string& ma
 	}
 }
 
+void OpenGLStaticModelInstance::setMaterial( int materialIndex, Material* mat )
+{
+	assert( materials.size() > materialIndex );
+	materials[materialIndex] = mat;
+}
+
 void OpenGLStaticModelInstance::setMaterial( const std::string& materialName, Material* mat )
 {
 	bool found = false;
