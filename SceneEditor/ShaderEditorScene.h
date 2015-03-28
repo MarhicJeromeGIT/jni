@@ -24,6 +24,8 @@ class QOpenGLFramebufferObject;
 class MaterialGrass;
 class MaterialPhongTexture;
 class CustomMaterial;
+class OpenGLModelInstance;
+class DynamicModelInstance;
 
 enum UNIFORM_TYPE
 {
@@ -31,6 +33,39 @@ enum UNIFORM_TYPE
 	VIEW_MATRIX,
 	PROJECTION_MATRIX,
 	NORMAL_MATRIX,
+	INVVIEW_MATRIX,
+	TIME,
+	TEXTURE2D_0,
+	TEXTURE2D_1,
+	TEXTURE2D_2,
+	TEXTURE2D_3,
+	TEXTURE_CUBEMAP,
+};
+
+enum ATTRIBUTE_TYPE
+{
+	POSITION,
+	TEXTURE_COORD,
+	NORMAL_ATTRIBUTE,
+	TANGENT_ATTRIBUTE,
+};
+
+enum EDITOR_MESH_TYPE
+{
+	EDITOR_SPHERE_MESH,
+	EDITOR_PLANE_MESH,
+	EDITOR_CUBE_MESH,
+	EDITOR_CUSTOM_MESH,
+};
+
+struct CustomShaderParam
+{
+	TextureGL* tex0;
+	TextureGL* tex1;
+	TextureGL* tex2;
+	TextureGL* tex3;
+
+	TextureGL* cubemap;
 };
 
 class ShaderEditorScene : public Scene
@@ -38,10 +73,15 @@ class ShaderEditorScene : public Scene
 	Q_OBJECT
 
 public:
+	OpenGLModelInstance*       currentMesh;
+	OpenGLStaticModelInstance* sphereMesh;
+	DynamicModelInstance*      planeMesh;
+	OpenGLStaticModelInstance* cubeMesh;
+	OpenGLStaticModelInstance* customMesh;
 
-	OpenGLStaticModelInstance* mesh;
 	CustomMaterial* customMat;
 
+	void setMesh(EDITOR_MESH_TYPE meshType );
 	Skybox* skybox;
 
 	ShaderEditorScene(SceneManager* manager);
@@ -51,17 +91,26 @@ public:
 	void update(float dt);
 	void draw();
 
-	
-	map<std::string,UNIFORM_TYPE> UniformTypeNames;
+	CustomShaderParam customParams;
+
 };
+
+
 
 class MyShader : public Shader
 {
 public:
 	MyShader();
-	bool compile(const std::string& vertexSource, const std::string& fragmentSource, map<std::string,UNIFORM_TYPE>& aliasToUniformTypeMap);
+	bool ready; // compiled and correct
 
-	int vertexAttribLoc;
+	bool compile(const std::string& vertexSource, const std::string& fragmentSource, map<std::string,UNIFORM_TYPE>& aliasToUniformTypeMap,
+				map<std::string,ATTRIBUTE_TYPE>& aliasToAttributeTypeMap, CustomShaderParam& params);
+
+	vector<int> attribLoc;
+	int vertexPositionAttrib;
+	int textureCoordAttrib;
+	int normalAttribLoc;
+	int tangenteAttribLoc;
 
 	vector< std::function< void() > > myUniformVector;
 
@@ -77,7 +126,8 @@ public:
 	MyShader* shader;
 	CustomMaterial();
 
-	bool compile(const std::string& vertexSource, const std::string& fragmentSource, map<std::string,UNIFORM_TYPE>& aliasToUniformTypeMap );
+	bool compile(const std::string& vertexSource, const std::string& fragmentSource, map<std::string,UNIFORM_TYPE>& aliasToUniformTypeMap, 
+				map<std::string,ATTRIBUTE_TYPE>& aliasToAttributeTypeMap, CustomShaderParam& params );
 	const std::string& getErrorString();
 
 	virtual void SetupUniforms(MATERIAL_DRAW_PASS Pass);

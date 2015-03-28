@@ -34,8 +34,31 @@ using glm::vec4;
 
 ShaderEditorScene::ShaderEditorScene(SceneManager* manager) : Scene(manager)
 {
+	currentMesh = nullptr;
+	sphereMesh  = nullptr;
+	planeMesh   = nullptr;
+	cubeMesh    = nullptr;
+	customMesh  = nullptr;
 }
 
+void ShaderEditorScene::setMesh(EDITOR_MESH_TYPE meshType )
+{
+	switch( meshType )
+	{
+		case EDITOR_SPHERE_MESH :
+			currentMesh = sphereMesh;
+		break;
+		case EDITOR_PLANE_MESH :
+			currentMesh = planeMesh;
+		break;
+		case EDITOR_CUBE_MESH :
+			currentMesh = cubeMesh;
+		break;
+		case EDITOR_CUSTOM_MESH :
+			currentMesh = customMesh;
+		break;
+	}
+}
 void ShaderEditorScene::init()
 {
 	// GLEW d'abord
@@ -71,10 +94,31 @@ void ShaderEditorScene::init()
 	Model* sphereModel = new Model();
 	sphereModel->Load( DATA_PATH "sphereModel.txt" );
 	OpenGLStaticModel* sphereGL = new OpenGLStaticModel(sphereModel);
-	mesh = new OpenGLStaticModelInstance( glm::translate(mat4(1.0), vec3(0.0,0.5,0.0) ), sphereGL );
+	sphereMesh = new OpenGLStaticModelInstance( glm::translate(mat4(1.0), vec3(0.0,0.5,0.0) ), sphereGL );
 
 	customMat = new CustomMaterial();
-	mesh->setMaterial(0,customMat);
+	sphereMesh->setMaterial(0,customMat);
+	
+
+	currentMesh = sphereMesh;
+	// Plane mesh :
+	DynamicMesh* planeModel = new DynamicMesh(4,2);
+	{	
+		const float S = 2.0f;
+		const float y = 0.0f;
+		vec3 vert[] = { vec3(-S,y,-S), vec3(S,y,-S), vec3(S,y,S), vec3(-S,y,S) };
+		vec2 uv[]   = { vec2(0.0,0.0), vec2(1.0,0.0), vec2(1.0,1.0), vec2(0.0,1.0) };
+		vec3 norm[] = { vec3(0,1,0), vec3(0,1,0), vec3(0,1,0), vec3(0,1,0) };
+		vec3 tan[] = { vec3(1,0,0), vec3(1,0,0), vec3(1,0,0), vec3(1,0,0) };
+		vec3 bitan[] = { vec3(0,0,1), vec3(0,0,1), vec3(0,0,1), vec3(0,0,1) };
+		unsigned short tri[2*3] = { 0,1,2, 0,2,3 };
+		planeModel->updateGeometry( vert, uv, 4, tri, 2  );
+		planeModel->updateBuffer( norm, 4, planeModel->mesh.normalBuffer );
+		planeModel->updateBuffer( tan, 4, planeModel->mesh.tangenteBuffer );
+		planeModel->updateBuffer( bitan, 4, planeModel->mesh.bitangenteBuffer );
+	}
+	planeMesh = new DynamicModelInstance( glm::mat4(1.0), planeModel );
+	planeMesh->setMaterial(customMat);
 
 	// Global lighting parameters
 	ShaderParams::get()->ambient                       = vec4(0.5,0.5,0.5,1.0);
@@ -83,12 +127,14 @@ void ShaderEditorScene::init()
 	ShaderParams::get()->lights[0].lightSpecularColor  = glm::vec3(1.0,1.0,1.0);
 	ShaderParams::get()->lights[0].lightShininess      = 32;
 	ShaderParams::get()->lights[0].lightPosition       = glm::vec4(0,15,-50,1.0);
+	ShaderParams::get()->time                          = 0.0f;
 
-	UniformTypeNames.insert( pair<std::string,UNIFORM_TYPE>("View Matrix",VIEW_MATRIX) );
-	UniformTypeNames.insert( pair<std::string,UNIFORM_TYPE>("Object Matrix",MODEL_MATRIX) );
-	UniformTypeNames.insert( pair<std::string,UNIFORM_TYPE>("Projection Matrix",PROJECTION_MATRIX) );
-	UniformTypeNames.insert( pair<std::string,UNIFORM_TYPE>("Normal Matrix",NORMAL_MATRIX) );
 
+	customParams.tex0 = TextureManager::get()->createRGBATexture("red", glm::vec4(1,0,0,1), 16,16 );
+	customParams.tex1 = TextureManager::get()->createRGBATexture("green", glm::vec4(0,1,0,1), 16,16 );
+	customParams.tex2 = TextureManager::get()->createRGBATexture("blue", glm::vec4(0,0,1,1), 16,16 );
+	customParams.tex3 = TextureManager::get()->createRGBATexture("black", glm::vec4(0,0,0,1), 16,16 );
+	customParams.cubemap = skybox->cubemap;
 }
 
 void ShaderEditorScene::deinit()
@@ -99,6 +145,7 @@ void ShaderEditorScene::deinit()
 
 void ShaderEditorScene::update(float dt)
 {
+	ShaderParams::get()->time += dt;
 }
 
 
@@ -110,7 +157,7 @@ void ShaderEditorScene::draw()
 	ShaderParams::get()->projectionMatrix = glm::perspective(70.0f, rapport, 0.1f, 1000.0f);
 	ShaderParams::get()->viewMatrix = glm::lookAt( sceneManager->camera->position, vec3(0,0,0), vec3(0,1,0) );
 
-	mesh->Draw(COLOR);
+	currentMesh->Draw(COLOR);
 	skybox->Draw(COLOR);
 
 	Renderer::get()->endFrame();
@@ -125,39 +172,20 @@ void ShaderEditorScene::draw()
 
 MyShader::MyShader()
 {
-	// Default basic shader
-	string vs = "uniform mat4 ModelMatrix; \n \
-				 uniform mat4 ViewMatrix; \n \
-				 uniform mat4 ProjectionMatrix; \n \
-				 in vec3  vertexPosition; \n \
-				 void main(void) \n \
-				 {	 \n \
-					gl_Position  = ProjectionMatrix * ViewMatrix * ModelMatrix * vec4(vertexPosition,1.0); \n \
-				 }\n";
-	string ps = "void main(void)  \n \
-				{  \n \
-					gl_FragColor = vec4(0.3,0.3,0.3,1.0); \n \
-				} \n";
-
-	LoadShaderFromFile(vs,ps);
-
-	uModelMat = (UniformMat4f*) GetUniformByName("ModelMatrix");
-	assert(uModelMat != 0);
-
-	uViewMat = (UniformMat4f*) GetUniformByName("ViewMatrix");
-	assert(uViewMat != 0);
-
-	uProjectionMat = (UniformMat4f*) GetUniformByName("ProjectionMatrix");
-	assert(uProjectionMat != 0);
-
-	vertexAttribLoc = glGetAttribLocation( getProgram(), "vertexPosition" );
+	ready = false;
+	vertexPositionAttrib = -1;
+	textureCoordAttrib   = -1;
+	normalAttribLoc      = -1;
+	tangenteAttribLoc    = -1;
 }
 
 // return true if no compilation error
-bool MyShader::compile(const std::string& vertexSource, const std::string& fragmentSource, map<std::string,UNIFORM_TYPE>& aliasToUniformTypeMap)
+bool MyShader::compile(const std::string& vertexSource, const std::string& fragmentSource, map<std::string,UNIFORM_TYPE>& aliasToUniformTypeMap,
+						map<std::string,ATTRIBUTE_TYPE>& aliasToAttributeTypeMap, CustomShaderParam& params)
 {
 	bool compiled = newCompileProgram( vertexSource, fragmentSource );
 	if( !compiled ) return false;
+	ready = false;
 
 	GetUniforms();
 
@@ -167,40 +195,55 @@ bool MyShader::compile(const std::string& vertexSource, const std::string& fragm
 	}
 
 	myUniformVector.clear();
-
-/*	auto castUniformMat4f = [this](Uniform* uniform, std::string& id)
-	{
-		cout<<"calling castUniformMat4f "<<endl;
-		uniform = GetUniformByName(id);
-	};
-	auto castUniformFloat = [this](Uniform* myUniform, std::string& id)
-	{
-		myUniform = (UniformFloat*) GetUniformByName(id);
-	};
-
-
-	
-	map<std::string,std::function<void (Uniform*)> > SetUniformMap;
-	SetUniformMap.insert( pair<std::string,std::function<void (Uniform*)> >( myViewMatrixVar, std::bind(castUniformMat4f, std::placeholders::_1, myViewMatrixVar) ) );
-
-	SetUniformMap[myViewMatrixVar](myUniform);
-	*/
-	//std::string myViewMatrixVar = "ViewMatrix";
-	//myUniform = GetUniformByName(myViewMatrixVar);
+	vertexPositionAttrib = -1;
+	textureCoordAttrib   = -1;
+	normalAttribLoc      = -1;
+	tangenteAttribLoc    = -1;
+	attribLoc.clear();
 
 	auto setValueMat4f = [](Uniform* uniform, glm::mat4* matPtr)
 	{
 		((UniformMat4f*)uniform )->setValue( *matPtr );
 	};
+	auto setValueFloat = [](Uniform* uniform, float* floatPtr)
+	{
+		((UniformFloat*)uniform )->setValue( *floatPtr );
+	};
+	auto setValueNormalMat = [](Uniform* uniform, glm::mat4* viewMatrixPtr, glm::mat4* objectMatrixPtr)
+	{
+		glm::mat3 upperTopMV = glm::mat3( *viewMatrixPtr * *objectMatrixPtr );
+		glm::mat3 normalMatrix = glm::transpose( glm::inverse(upperTopMV) );
+		((UniformMat3f*)uniform )->setValue( normalMatrix );
+	};
+	auto setValueInvViewMat = [](Uniform* uniform, glm::mat4* viewMatrixPtr)
+	{
+		((UniformMat4f*)uniform )->setValue( glm::inverse( *viewMatrixPtr) );
+	};
+	auto setValueSampler2D = [](Uniform* uniform, TextureGL* tex)
+	{
+		((UniformSampler2D*)uniform )->setValue( tex->getTexId() );
+	};
+	auto setValueSamplerCube = [](Uniform* uniform, TextureGL* tex)
+	{
+		((UniformSamplerCube*)uniform )->setValue( tex->getTexId() );
+	};
 	glm::mat4* viewMatrix       = &( ShaderParams::get()->viewMatrix );
 	glm::mat4* objectMatrix     = &( ShaderParams::get()->objectMatrix );
 	glm::mat4* projectionMatrix = &( ShaderParams::get()->projectionMatrix );
-
+	float* time                 = &( ShaderParams::get()->time );
 	map<UNIFORM_TYPE, std::function< void (Uniform*) > > setValueMap;
 
 	setValueMap.insert( pair< UNIFORM_TYPE, std::function< void (Uniform*) > >(UNIFORM_TYPE::VIEW_MATRIX, std::bind( setValueMat4f, std::placeholders::_1, viewMatrix ) ) );
 	setValueMap.insert( pair< UNIFORM_TYPE, std::function< void (Uniform*) > >(UNIFORM_TYPE::MODEL_MATRIX, std::bind( setValueMat4f, std::placeholders::_1, objectMatrix ) ) );
 	setValueMap.insert( pair< UNIFORM_TYPE, std::function< void (Uniform*) > >(UNIFORM_TYPE::PROJECTION_MATRIX, std::bind( setValueMat4f, std::placeholders::_1, projectionMatrix ) ) );
+	setValueMap.insert( pair< UNIFORM_TYPE, std::function< void (Uniform*) > >(UNIFORM_TYPE::NORMAL_MATRIX, std::bind( setValueNormalMat, std::placeholders::_1, viewMatrix, objectMatrix ) ) );
+	setValueMap.insert( pair< UNIFORM_TYPE, std::function< void (Uniform*) > >(UNIFORM_TYPE::INVVIEW_MATRIX, std::bind( setValueInvViewMat, std::placeholders::_1, viewMatrix ) ) );
+	setValueMap.insert( pair< UNIFORM_TYPE, std::function< void (Uniform*) > >(UNIFORM_TYPE::TIME, std::bind( setValueFloat, std::placeholders::_1, time ) ) );
+	setValueMap.insert( pair< UNIFORM_TYPE, std::function< void (Uniform*) > >(UNIFORM_TYPE::TEXTURE2D_0, std::bind( setValueSampler2D, std::placeholders::_1, params.tex0 ) ) );
+	setValueMap.insert( pair< UNIFORM_TYPE, std::function< void (Uniform*) > >(UNIFORM_TYPE::TEXTURE2D_1, std::bind( setValueSampler2D, std::placeholders::_1, params.tex1 ) ) );
+	setValueMap.insert( pair< UNIFORM_TYPE, std::function< void (Uniform*) > >(UNIFORM_TYPE::TEXTURE2D_2, std::bind( setValueSampler2D, std::placeholders::_1, params.tex2 ) ) );
+	setValueMap.insert( pair< UNIFORM_TYPE, std::function< void (Uniform*) > >(UNIFORM_TYPE::TEXTURE2D_3, std::bind( setValueSampler2D, std::placeholders::_1, params.tex3 ) ) );
+	setValueMap.insert( pair< UNIFORM_TYPE, std::function< void (Uniform*) > >(UNIFORM_TYPE::TEXTURE_CUBEMAP, std::bind( setValueSamplerCube, std::placeholders::_1, params.cubemap ) ) );
 
 	for( auto it = aliasToUniformTypeMap.begin(); it != aliasToUniformTypeMap.end(); it++ )
 	{
@@ -212,19 +255,67 @@ bool MyShader::compile(const std::string& vertexSource, const std::string& fragm
 			myUniformVector.push_back( myFunc );
 		}
 	}	
-		
-	vertexAttribLoc = glGetAttribLocation( getProgram(), "vertexPosition" );
+	
+	for( auto it = aliasToAttributeTypeMap.begin(); it != aliasToAttributeTypeMap.end(); it++ )
+	{
+		int myAttrib = glGetAttribLocation( getProgram(), it->first.c_str() );
+	
+		if( myAttrib >= 0 )
+		{
+			attribLoc.push_back( myAttrib );
 
+			switch( it->second )
+			{
+			case POSITION:
+				vertexPositionAttrib = myAttrib;
+				break;
+			case TEXTURE_COORD:
+				textureCoordAttrib = myAttrib;
+				break;
+			case NORMAL_ATTRIBUTE:
+				normalAttribLoc = myAttrib;
+				break;
+			case TANGENT_ATTRIBUTE:
+				tangenteAttribLoc = myAttrib;
+				break;
+			default:
+				assert(false);
+				break;
+			};
+		}
+	}
+
+	ready = true;
 	return compiled;
 }
 
 void MyShader::Draw(Mesh* m)
 {
+	if( !ready )  return;
+
 	InternalMesh* mesh = (InternalMesh*) m;
 	Clean();
 
-	glBindBuffer( GL_ARRAY_BUFFER, mesh->vertexBuffer );
-	glVertexAttribPointer( vertexAttribLoc, 3, GL_FLOAT, GL_FALSE, 0, 0);
+	if( vertexPositionAttrib >= 0 )
+	{
+		glBindBuffer( GL_ARRAY_BUFFER, mesh->vertexBuffer );
+		glVertexAttribPointer( vertexPositionAttrib, 3, GL_FLOAT, GL_FALSE, 0, 0);
+	}
+	if( textureCoordAttrib >= 0 )
+	{
+		glBindBuffer( GL_ARRAY_BUFFER, mesh->texCoordBuffer );
+		glVertexAttribPointer( textureCoordAttrib, 2, GL_FLOAT, GL_FALSE, 0, 0);
+	}
+	if( normalAttribLoc >= 0 )
+	{
+		glBindBuffer( GL_ARRAY_BUFFER, mesh->normalBuffer );
+		glVertexAttribPointer( normalAttribLoc, 3, GL_FLOAT, GL_FALSE, 0, 0);
+	}
+	if( tangenteAttribLoc >= 0 )
+	{
+		glBindBuffer( GL_ARRAY_BUFFER, mesh->tangenteBuffer );
+		glVertexAttribPointer( tangenteAttribLoc, 3, GL_FLOAT, GL_FALSE, 0, 0);
+	}
 
 	glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, mesh->indicesBuffer );
 	glDrawElements( GL_TRIANGLES, mesh->nbTriangles * 3, GL_UNSIGNED_SHORT, 0 );
@@ -232,25 +323,29 @@ void MyShader::Draw(Mesh* m)
 
 void MyShader::enable( const ShaderParams& params )
 {
-	glUseProgram(_program);
+	if( !ready ) return;
 	
-	//uModelMat->setValue( params.objectMatrix );
-	//uViewMat->setValue( params.viewMatrix );
-	//uProjectionMat->setValue( params.projectionMatrix );
-	glEnableVertexAttribArray(vertexAttribLoc);
+	glUseProgram(_program);
+
+	for( auto& it : attribLoc )
+	{
+			glEnableVertexAttribArray( it );
+	}
 
 	for( auto& it : myUniformVector )
 	{
 		it();
 	}
-
-	//UniformFloat
-	
 }
 
 void MyShader::disable()
 {
-	glDisableVertexAttribArray(vertexAttribLoc);
+	if( !ready ) return;
+	for( auto& it : attribLoc )
+	{
+		glDisableVertexAttribArray( it );
+	}
+
 	Shader::disable();
 }
 
@@ -261,9 +356,10 @@ CustomMaterial::CustomMaterial() : Material(MATERIAL_SKINNING)
 } 
 
 bool CustomMaterial::compile(const std::string& vertexSource, const std::string& fragmentSource,
-							 map<std::string,UNIFORM_TYPE>& aliasToUniformTypeMap)
+							 map<std::string,UNIFORM_TYPE>& aliasToUniformTypeMap, map<std::string,ATTRIBUTE_TYPE>& aliasToAttributeTypeMap,
+							 CustomShaderParam& params)
 {
-	return shader->compile( vertexSource, fragmentSource, aliasToUniformTypeMap );
+	return shader->compile( vertexSource, fragmentSource, aliasToUniformTypeMap, aliasToAttributeTypeMap, params );
 }
 
 const std::string& CustomMaterial::getErrorString()

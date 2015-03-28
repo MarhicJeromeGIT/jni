@@ -185,8 +185,8 @@ bool ModelImport::ImportMeshes( const aiScene* scene, Model* newModel )
 			}
 			else
 			{
-				newMesh.vertex_tangentes[k]   = vec3(10.0,0.0,1.0);
-				newMesh.vertex_bitangentes[k] = vec3(1.0,0.0,0.0);
+				newMesh.vertex_tangentes[k]   = vec3(1.0,0.0,0.0);
+				newMesh.vertex_bitangentes[k] = vec3(0.0,1.0,0.0);
 			}
 
 			if( mesh->HasTextureCoords(0) )

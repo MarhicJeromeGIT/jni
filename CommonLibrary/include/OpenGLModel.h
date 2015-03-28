@@ -46,6 +46,7 @@ public:
 	bool hasAnimations;
 	bool hasBones;
 	bool hasNormals;
+	bool hasTangents;
 	bool hasUVs;
 
 	GLuint vertexBuffer;
@@ -95,6 +96,7 @@ public:
 	int nbInstances;
 	GLuint modelMatrixBuffer;
 
+	bool getHasTangents(){ return hasTangents; }
 };
 
 class DynamicMesh : public Mesh
@@ -170,7 +172,7 @@ public:
 	glm::vec3 position;
 	list<unsigned int> meshesToDraw; // maybe we don't want to draw all our meshes
 	
-
+	OpenGLModelInstance( const glm::mat4& objectMatrix );
 	OpenGLModelInstance( const glm::mat4& objectMatrix, OpenGLModel* glModel );
 	virtual ~OpenGLModelInstance();
 
@@ -186,6 +188,24 @@ public:
 	virtual void reloadGLData() = 0;
 
 	int getMeshIndex( const char* meshName );
+};
+
+//***************************************//
+// Dynamic mesh model instance
+//
+//***************************************//
+class DynamicModelInstance : public OpenGLModelInstance
+{
+private:
+	DynamicMesh* mesh;
+	Material* meshMaterial;
+public:
+	DynamicModelInstance(const glm::mat4& mat, DynamicMesh* mesh);
+
+	virtual void Draw(MATERIAL_DRAW_PASS Pass);
+	virtual void update( float dt ){}
+	virtual void reloadGLData(){}
+	void setMaterial(Material* mat);
 };
 
 //***************************************//

@@ -39,6 +39,7 @@ InternalMesh::InternalMesh()
 	hasAnimations = false;
 	hasBones = false;
 	hasNormals = false;
+	hasTangents = false;
 	hasUVs = false;
 
 	vertexBuffer = 0;
@@ -335,11 +336,10 @@ bool OpenGLModel::loadMesh( const Model::Mesh* mesh )
 	glGenBuffers(1,&newMesh.normalBuffer);
 	glBindBuffer( GL_ARRAY_BUFFER, newMesh.normalBuffer );
 	glBufferData( GL_ARRAY_BUFFER, sizeof(vec3) * newMesh.totalVertices, mesh->vertex_normales, GL_STATIC_DRAW );
-
+	
 	glGenBuffers(1,&newMesh.tangenteBuffer);
 	glBindBuffer( GL_ARRAY_BUFFER, newMesh.tangenteBuffer );
 	glBufferData( GL_ARRAY_BUFFER, sizeof(vec3) * newMesh.totalVertices, mesh->vertex_tangentes, GL_STATIC_DRAW );
-
 	glGenBuffers(1,&newMesh.bitangenteBuffer);
 	glBindBuffer( GL_ARRAY_BUFFER, newMesh.bitangenteBuffer );
 	glBufferData( GL_ARRAY_BUFFER, sizeof(vec3) * newMesh.totalVertices, mesh->vertex_bitangentes, GL_STATIC_DRAW );
@@ -463,6 +463,11 @@ OpenGLSkinnedModel::OpenGLSkinnedModel( const Model* internModel ) : OpenGLModel
 //
 //*********************************
 
+OpenGLModelInstance::OpenGLModelInstance( const glm::mat4& mat )
+{
+	objectMatrix = mat;
+}
+
 OpenGLModelInstance::OpenGLModelInstance( const mat4& mat, OpenGLModel* glModel )
 {
 	objectMatrix = mat;
@@ -513,6 +518,47 @@ int OpenGLModelInstance::getMeshIndex( const char* meshName )
 		}
 	}
 	return index;
+}
+
+//***************************************//
+// Dynamic mesh model instance
+//
+//***************************************//
+
+DynamicModelInstance::DynamicModelInstance( const mat4& mat, DynamicMesh* m ): OpenGLModelInstance( mat )
+{
+	mesh = m;
+	meshMaterial = nullptr;
+}
+
+void DynamicModelInstance::setMaterial(Material* mat)
+{
+	meshMaterial = mat;
+}
+
+void DynamicModelInstance::Draw(MATERIAL_DRAW_PASS Pass)
+{
+	if(meshMaterial == nullptr) return;
+
+	DrawCall drawcall;
+
+	mat4 objectMat = mat4(1.0);
+
+	drawcall.Pass     = Pass;
+	drawcall.modelMat = objectMat;
+	drawcall.viewMat  = ShaderParams::get()->viewMatrix;
+	drawcall.projMat  = ShaderParams::get()->projectionMatrix;
+
+	Shader* shader = meshMaterial->getShader(MATERIAL_DRAW_PASS::SHADOW);
+	if( shader != NULL )
+	{
+		drawcall.material          = meshMaterial;
+		drawcall.mesh              = &(mesh->mesh);
+		drawcall.transparencyMode  = TRANSPARENCY_MODE::GL_SRC_ALPHA_GL_ONE_MINUS_SRC_ALPHA;
+		drawcall.hasTransparency   = false;
+		drawcall.disableDepthWrite = false;
+		Renderer::get()->draw( drawcall );
+	}
 }
 
 //*********************************

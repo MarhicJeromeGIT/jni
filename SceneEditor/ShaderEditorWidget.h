@@ -25,6 +25,8 @@ class QTweakable;
 class QHBoxLayout;
 class QVBoxLayout;
 class Mesh;
+struct UniformWidget;
+struct AttributeWidget;
 
 //**********************************
 // ShaderEditorWidget : compile shaders and view the result in real time
@@ -36,22 +38,33 @@ class ShaderEditorWidget : public QWidget
 
 public slots: 
 	void compileShader();
-
+	void setDefaults();
+	void loadTexture();
+	void saveCurrentState();
+	void openCurrentState();
+	void clearContent();
 signals:
 	
 public:
 	GLWidget* glWidget;
-	QHBoxLayout *mainLayout;
+	QVBoxLayout *mainLayout;
 	QVBoxLayout* tweakableLayout;
 	QTextEdit* VertexShaderEdit;
 	QTextEdit* FragmentShaderEdit;
 	QVBoxLayout* uniformsZone;
+	QVBoxLayout* attributesZone;
 public:
     ShaderEditorWidget();
     ~ShaderEditorWidget();
 
+	void BuildUniformMap(map<std::string,UNIFORM_TYPE>& aliasToUniformTypeMap);
+	void BuildAttributeMap(map<std::string,ATTRIBUTE_TYPE>& aliasToAttributeTypeMap);
 private:
 	ShaderEditorScene* shaderScene;
+	QString texture0Filename;
+
+	vector<UniformWidget*>   addedUniformWidgets;
+	vector<AttributeWidget*> addedAttributeWidgets;
 };
 
 struct UniformWidget : public QWidget

@@ -265,7 +265,7 @@ void DeferredScene::deferredPass()
 	ShaderParams::get()->viewMatrix = glm::lookAt( sceneManager->camera->position, vec3(0,0,0), vec3(0,1,0) );
 
 	// That's just a test.
-	for( int i=0; i< spherePositions.size(); i++ )
+	for( unsigned int i=0; i< spherePositions.size(); i++ )
 	{
 		sphereInstance->objectMatrix = glm::translate( mat4(1.0), spherePositions[i] );
 		sphereInstance->Draw( COLOR );
@@ -302,7 +302,7 @@ void DeferredScene::fullscreenPass()
 
 	glBlendFunc(GL_ONE, GL_ONE);
 
-	for( int i=0; i < lightInfoVector.size(); i++ )
+	for( unsigned int i=0; i < lightInfoVector.size(); i++ )
 	{
 		lightInfo& light = lightInfoVector[i];
 
