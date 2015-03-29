@@ -35,8 +35,8 @@ using namespace std;
 ShaderEditorWidget::ShaderEditorWidget( ) : QWidget()
 {
 	mainLayout = new QVBoxLayout;
-	
-	QSplitter* splitter = new QSplitter(this);
+	this->setLayout( mainLayout );
+	this->setWindowTitle( "Shader Creator" );
 
 	QGLFormat format;
 	cout<<format.openGLVersionFlags();
@@ -60,49 +60,57 @@ ShaderEditorWidget::ShaderEditorWidget( ) : QWidget()
 	connect( sphereButton, &QPushButton::clicked, this, [this](){ shaderScene->setMesh(EDITOR_MESH_TYPE::EDITOR_SPHERE_MESH); } );
 	connect( planeButton,  &QPushButton::clicked, this, [this](){ shaderScene->setMesh(EDITOR_MESH_TYPE::EDITOR_PLANE_MESH); } );
 
+	// Setup the interface (TODO : doable with qt editor ?)
 	mainLayout->addLayout( topButtonsLayout );
+	
+	QSplitter* splitter = new QSplitter(this);
+	splitter->setOrientation(Qt::Orientation::Horizontal);
 	mainLayout->addWidget( splitter );
 
+	// LEFT SIDE : opengl view + uniforms/attributes zones
+	QSplitter* leftSplitter = new QSplitter(this);
+	leftSplitter->setOrientation(Qt::Orientation::Vertical);
+	splitter->addWidget( leftSplitter );
+	
+	// the opengl view
 	glWidget = new GLWidget(format);
-	splitter->addWidget(glWidget);
+	leftSplitter->addWidget(glWidget);
 
-	tweakableLayout = new QVBoxLayout;
-	tweakableLayout->setAlignment( Qt::AlignTop );
-	QWidget* rightSide = new QWidget();
-	rightSide->setLayout( tweakableLayout );
-
-	QScrollArea *frame_scroll = new QScrollArea();  
-	frame_scroll->setWidgetResizable(true);
-	frame_scroll->setWidget( rightSide );
-
-	splitter->addWidget( frame_scroll );
-
-	this->setLayout( mainLayout );
-	this->setWindowTitle( "Scene Viewer" );
-
-	glWidget->setScene("ShaderEditorScene");
-//	shaderScene = make_shared<ShaderEditorScene>( glWidget->getScene("ShaderEditorScene") );
-	shaderScene = (ShaderEditorScene*) glWidget->getScene("ShaderEditorScene");
-	assert( shaderScene != nullptr );
-
-	VertexShaderEdit = new QTextEdit();
-	FragmentShaderEdit = new QTextEdit();
-
+	// attribute & uniform zone
 	QHBoxLayout* buttonZone = new QHBoxLayout();
 	QPushButton* compileButon = new QPushButton("Compile");
 	buttonZone->addWidget(compileButon);
 	QPushButton* loadTextureButton = new QPushButton("Load Texture");
 	buttonZone->addWidget(loadTextureButton);
-
+	
 	uniformsZone = new QVBoxLayout();
 	attributesZone = new QVBoxLayout();
 
-
+	tweakableLayout = new QVBoxLayout;
+	tweakableLayout->setAlignment( Qt::AlignTop );
+	QScrollArea *leftSide = new QScrollArea();  
+	leftSide->setWidgetResizable(false);
+	leftSide->setLayout( tweakableLayout );
+	
 	tweakableLayout->addLayout(buttonZone);
 	tweakableLayout->addLayout(uniformsZone);
 	tweakableLayout->addLayout(attributesZone);
-	tweakableLayout->addWidget(VertexShaderEdit);
-	tweakableLayout->addWidget(FragmentShaderEdit);
+	leftSplitter->addWidget(leftSide);
+
+	// Right side : Vertex and fragment shader textedit
+	QSplitter* splitterRightside = new QSplitter(this);
+	splitterRightside->setOrientation(Qt::Orientation::Vertical);
+	splitter->addWidget( splitterRightside );
+
+	VertexShaderEdit = new QTextEdit();
+	FragmentShaderEdit = new QTextEdit();
+
+	splitterRightside->addWidget(VertexShaderEdit);
+	splitterRightside->addWidget(FragmentShaderEdit);
+
+	glWidget->setScene("ShaderEditorScene");
+	shaderScene = (ShaderEditorScene*) glWidget->getScene("ShaderEditorScene");
+	assert( shaderScene != nullptr );
 
 	connect( compileButon, SIGNAL( clicked() ), this, SLOT( compileShader() ) );
 	connect( loadTextureButton, SIGNAL( clicked() ), this, SLOT( loadTexture() ) );
@@ -309,7 +317,7 @@ void ShaderEditorWidget::loadTexture()
 
 void ShaderEditorWidget::saveCurrentState()
 {
-	QString filename = QFileDialog::getSaveFileName();
+	QString filename = QFileDialog::getSaveFileName(0,"","",QString("*.xml"));
 	TiXmlDocument newdoc(filename.toStdString() );
 
 	TiXmlDeclaration * decl = new TiXmlDeclaration( "1.0", "utf-8", "");
@@ -358,7 +366,7 @@ void ShaderEditorWidget::saveCurrentState()
 
 void ShaderEditorWidget::openCurrentState()
 {
-	QString filename = QFileDialog::getOpenFileName();
+	QString filename = QFileDialog::getOpenFileName(0,"","",QString("*.xml"));
 
 	TiXmlDocument doc;
 	if( !doc.LoadFile( filename.toStdString() ) )
