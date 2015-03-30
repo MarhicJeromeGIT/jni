@@ -66,6 +66,8 @@ struct CustomShaderParam
 	TextureGL* tex3;
 
 	TextureGL* cubemap;
+
+	void setTexture( UNIFORM_TYPE type, TextureGL* tex );
 };
 
 class ShaderEditorScene : public Scene
@@ -92,7 +94,7 @@ public:
 	void draw();
 
 	CustomShaderParam customParams;
-
+	void updateTexture( map<std::string,UNIFORM_TYPE>& aliasToUniformTypeMap,  UNIFORM_TYPE type, TextureGL* tex );
 };
 
 
@@ -105,6 +107,7 @@ public:
 
 	bool compile(const std::string& vertexSource, const std::string& fragmentSource, map<std::string,UNIFORM_TYPE>& aliasToUniformTypeMap,
 				map<std::string,ATTRIBUTE_TYPE>& aliasToAttributeTypeMap, CustomShaderParam& params);
+	void updateParams(map<std::string,UNIFORM_TYPE>& aliasToUniformTypeMap, CustomShaderParam& params);
 
 	vector<int> attribLoc;
 	int vertexPositionAttrib;
@@ -129,6 +132,8 @@ public:
 	bool compile(const std::string& vertexSource, const std::string& fragmentSource, map<std::string,UNIFORM_TYPE>& aliasToUniformTypeMap, 
 				map<std::string,ATTRIBUTE_TYPE>& aliasToAttributeTypeMap, CustomShaderParam& params );
 	const std::string& getErrorString();
+
+	void updateParams(map<std::string,UNIFORM_TYPE>& aliasToUniformTypeMap, CustomShaderParam& params);
 
 	virtual void SetupUniforms(MATERIAL_DRAW_PASS Pass);
 	Shader* getShader( MATERIAL_DRAW_PASS Pass );

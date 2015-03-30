@@ -28,6 +28,9 @@ using namespace std;
 #include "qfiledialog.h"
 
 #include "tinyxml.h"
+#include "UniformWidget.h"
+#include <qlabel.h>
+
 //**********************************
 // ShaderEditorWidget 
 //
@@ -80,8 +83,6 @@ ShaderEditorWidget::ShaderEditorWidget( ) : QWidget()
 	QHBoxLayout* buttonZone = new QHBoxLayout();
 	QPushButton* compileButon = new QPushButton("Compile");
 	buttonZone->addWidget(compileButon);
-	QPushButton* loadTextureButton = new QPushButton("Load Texture");
-	buttonZone->addWidget(loadTextureButton);
 	
 	uniformsZone = new QVBoxLayout();
 	attributesZone = new QVBoxLayout();
@@ -113,8 +114,6 @@ ShaderEditorWidget::ShaderEditorWidget( ) : QWidget()
 	assert( shaderScene != nullptr );
 
 	connect( compileButon, SIGNAL( clicked() ), this, SLOT( compileShader() ) );
-	connect( loadTextureButton, SIGNAL( clicked() ), this, SLOT( loadTexture() ) );
-
 	setDefaults();
 }
 
@@ -162,24 +161,24 @@ void main(void) \n\
 
 	QPushButton* addUniformButton = new QPushButton("+");
 	uniformsZone->addWidget(addUniformButton);
-	UniformWidget* unif1 = new UniformWidget();
+	UniformWidget* unif1 = new UniformWidget( this );
 	uniformsZone->addWidget(unif1);
 	addedUniformWidgets.push_back(unif1);
 	unif1->uniformName->setText( QString("ModelMatrix") );
 	unif1->uniformChoice->setCurrentIndex( (int) MODEL_MATRIX );
-	UniformWidget* unif2 = new UniformWidget();
+	UniformWidget* unif2 = new UniformWidget( this );
 	uniformsZone->addWidget(unif2);
 	addedUniformWidgets.push_back(unif2);
 	unif2->uniformName->setText( QString("ViewMatrix") );
 	unif2->uniformChoice->setCurrentIndex( (int) VIEW_MATRIX );
-	UniformWidget* unif3 = new UniformWidget();
+	UniformWidget* unif3 = new UniformWidget( this );
 	uniformsZone->addWidget(unif3);
 	addedUniformWidgets.push_back(unif3);
 	unif3->uniformName->setText( QString("ProjectionMatrix") );
 	unif3->uniformChoice->setCurrentIndex( (int) PROJECTION_MATRIX );
 
 	connect( addUniformButton,  &QPushButton::clicked, this, [this]() { 
-		UniformWidget* newUnif = new UniformWidget();
+		UniformWidget* newUnif = new UniformWidget( this );
 		addedUniformWidgets.push_back(newUnif);
 		uniformsZone->addWidget(newUnif);  
 	} );
@@ -256,29 +255,15 @@ void ShaderEditorWidget::compileShader()
 									 shaderScene->customParams );
 }
 
-
-
-UniformWidget::UniformWidget() : QWidget()
+void ShaderEditorWidget::removeWidget( UniformWidget* widget )
 {
-	QHBoxLayout* layout = new QHBoxLayout();
-	setLayout(layout);
-
-	uniformName = new QLineEdit();
-	uniformChoice = new QComboBox();
-	uniformChoice->addItem( QString("Model Matrix (mat4)") );
-	uniformChoice->addItem( QString("View Matrix (mat4)") );
-	uniformChoice->addItem( QString("Projection Matrix (mat4)") );
-	uniformChoice->addItem( QString("Normal Matrix (mat3)") );
-	uniformChoice->addItem( QString("Inv View Mat (mat4)") );
-	uniformChoice->addItem( QString("Time (float)") );
-	uniformChoice->addItem( QString("tex0 (Sampler2D)") );
-	uniformChoice->addItem( QString("tex1 (Sampler2D)") );
-	uniformChoice->addItem( QString("tex2 (Sampler2D)") );
-	uniformChoice->addItem( QString("tex3 (Sampler2D)") );
-	uniformChoice->addItem( QString("cubemap (samplerCube)") );
-
-	layout->addWidget(uniformName);
-	layout->addWidget(uniformChoice);
+	uniformsZone->removeWidget( widget );
+	auto it = std::find( addedUniformWidgets.begin(), addedUniformWidgets.end(), widget );
+	if( it != addedUniformWidgets.end() )
+	{
+		addedUniformWidgets.erase(it);
+	}
+	delete widget;
 }
 
 AttributeWidget::AttributeWidget() : QWidget()
@@ -297,21 +282,15 @@ AttributeWidget::AttributeWidget() : QWidget()
 	layout->addWidget(attributeChoice);
 }
 
-
-void ShaderEditorWidget::loadTexture()
+void ShaderEditorWidget::setUniformTexture( UNIFORM_TYPE type, const QString& filename )
 {
-	QString file = QFileDialog::getOpenFileName(0,"","",QString("*.tga *.png"));
-	texture0Filename = file;
-
 	TextureManager::get()->setTexturePath("");
-	if( !texture0Filename.isEmpty() )
-	{
-		TextureGL* tex = TextureManager::get()->loadTexture(texture0Filename.toStdString(), texture0Filename.toStdString() );
-		if( tex != NULL )
-		{
-			shaderScene->customParams.tex0 = tex;
-		}
-	}
+	TextureGL* tex = TextureManager::get()->loadTexture(filename.toStdString(), filename.toStdString() );
+	
+	map<std::string,UNIFORM_TYPE> aliasToUniformTypeMap;
+	BuildUniformMap( aliasToUniformTypeMap);
+
+	shaderScene->updateTexture(aliasToUniformTypeMap, type, tex );
 }
 
 
@@ -388,7 +367,7 @@ void ShaderEditorWidget::openCurrentState()
 			std::string name;
 			uniform->QueryStringAttribute("name",&name);
 	
-			UniformWidget* unif1 = new UniformWidget();
+			UniformWidget* unif1 = new UniformWidget( this );
 			uniformsZone->addWidget(unif1);
 			addedUniformWidgets.push_back(unif1);
 			unif1->uniformName->setText( QString::fromStdString(name) );

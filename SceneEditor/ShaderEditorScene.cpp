@@ -32,6 +32,25 @@ using glm::vec4;
 #include "OpenGLModel.h"
 #include <map>
 
+void CustomShaderParam::setTexture( UNIFORM_TYPE type, TextureGL* tex )
+{
+	switch( type )
+	{
+	case TEXTURE2D_0:
+		tex0 = tex;
+		break;
+	case TEXTURE2D_1:
+		tex1 = tex;
+		break;
+	case TEXTURE2D_2:
+		tex2 = tex;
+		break;
+	case TEXTURE2D_3:
+		tex3 = tex;
+		break;
+	}
+}
+
 ShaderEditorScene::ShaderEditorScene(SceneManager* manager) : Scene(manager)
 {
 	currentMesh = nullptr;
@@ -164,6 +183,11 @@ void ShaderEditorScene::draw()
 
 }
 
+void ShaderEditorScene::updateTexture( map<std::string,UNIFORM_TYPE>& aliasToUniformTypeMap, UNIFORM_TYPE type, TextureGL* tex )
+{
+	customParams.setTexture(type,tex);
+	customMat->updateParams( aliasToUniformTypeMap, customParams );
+}
 
 //********************
 // SHADER AND MATERIAL
@@ -187,19 +211,57 @@ bool MyShader::compile(const std::string& vertexSource, const std::string& fragm
 	if( !compiled ) return false;
 	ready = false;
 
+	vertexPositionAttrib = -1;
+	textureCoordAttrib   = -1;
+	normalAttribLoc      = -1;
+	tangenteAttribLoc    = -1;
+	attribLoc.clear();
+
 	GetUniforms();
 
 	for( auto it = _uniforms.begin(); it != _uniforms.end(); it++ )
 	{
 		cout<<it->first<<endl;
 	}
+	
+	updateParams( aliasToUniformTypeMap, params );
 
+	for( auto it = aliasToAttributeTypeMap.begin(); it != aliasToAttributeTypeMap.end(); it++ )
+	{
+		int myAttrib = glGetAttribLocation( getProgram(), it->first.c_str() );
+	
+		if( myAttrib >= 0 )
+		{
+			attribLoc.push_back( myAttrib );
+
+			switch( it->second )
+			{
+			case POSITION:
+				vertexPositionAttrib = myAttrib;
+				break;
+			case TEXTURE_COORD:
+				textureCoordAttrib = myAttrib;
+				break;
+			case NORMAL_ATTRIBUTE:
+				normalAttribLoc = myAttrib;
+				break;
+			case TANGENT_ATTRIBUTE:
+				tangenteAttribLoc = myAttrib;
+				break;
+			default:
+				assert(false);
+				break;
+			};
+		}
+	}
+
+	ready = true;
+	return compiled;
+}
+
+void MyShader::updateParams(map<std::string,UNIFORM_TYPE>& aliasToUniformTypeMap, CustomShaderParam& params)
+{
 	myUniformVector.clear();
-	vertexPositionAttrib = -1;
-	textureCoordAttrib   = -1;
-	normalAttribLoc      = -1;
-	tangenteAttribLoc    = -1;
-	attribLoc.clear();
 
 	auto setValueMat4f = [](Uniform* uniform, glm::mat4* matPtr)
 	{
@@ -255,38 +317,6 @@ bool MyShader::compile(const std::string& vertexSource, const std::string& fragm
 			myUniformVector.push_back( myFunc );
 		}
 	}	
-	
-	for( auto it = aliasToAttributeTypeMap.begin(); it != aliasToAttributeTypeMap.end(); it++ )
-	{
-		int myAttrib = glGetAttribLocation( getProgram(), it->first.c_str() );
-	
-		if( myAttrib >= 0 )
-		{
-			attribLoc.push_back( myAttrib );
-
-			switch( it->second )
-			{
-			case POSITION:
-				vertexPositionAttrib = myAttrib;
-				break;
-			case TEXTURE_COORD:
-				textureCoordAttrib = myAttrib;
-				break;
-			case NORMAL_ATTRIBUTE:
-				normalAttribLoc = myAttrib;
-				break;
-			case TANGENT_ATTRIBUTE:
-				tangenteAttribLoc = myAttrib;
-				break;
-			default:
-				assert(false);
-				break;
-			};
-		}
-	}
-
-	ready = true;
-	return compiled;
 }
 
 void MyShader::Draw(Mesh* m)
@@ -354,6 +384,11 @@ CustomMaterial::CustomMaterial() : Material(MATERIAL_SKINNING)
 	shader = new MyShader();
 
 } 
+
+void CustomMaterial::updateParams(map<std::string,UNIFORM_TYPE>& aliasToUniformTypeMap, CustomShaderParam& params)
+{
+	shader->updateParams(aliasToUniformTypeMap, params);
+}
 
 bool CustomMaterial::compile(const std::string& vertexSource, const std::string& fragmentSource,
 							 map<std::string,UNIFORM_TYPE>& aliasToUniformTypeMap, map<std::string,ATTRIBUTE_TYPE>& aliasToAttributeTypeMap,

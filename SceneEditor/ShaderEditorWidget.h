@@ -28,6 +28,7 @@ class Mesh;
 struct UniformWidget;
 struct AttributeWidget;
 
+
 //**********************************
 // ShaderEditorWidget : compile shaders and view the result in real time
 //
@@ -39,10 +40,10 @@ class ShaderEditorWidget : public QWidget
 public slots: 
 	void compileShader();
 	void setDefaults();
-	void loadTexture();
 	void saveCurrentState();
 	void openCurrentState();
 	void clearContent();
+
 signals:
 	
 public:
@@ -59,19 +60,17 @@ public:
 
 	void BuildUniformMap(map<std::string,UNIFORM_TYPE>& aliasToUniformTypeMap);
 	void BuildAttributeMap(map<std::string,ATTRIBUTE_TYPE>& aliasToAttributeTypeMap);
+
+	void removeWidget( UniformWidget* widget );
+
+	void setUniformTexture( UNIFORM_TYPE type, const QString& filename );
+
 private:
 	ShaderEditorScene* shaderScene;
 	QString texture0Filename;
 
 	vector<UniformWidget*>   addedUniformWidgets;
 	vector<AttributeWidget*> addedAttributeWidgets;
-};
-
-struct UniformWidget : public QWidget
-{
-	UniformWidget();
-	QLineEdit* uniformName;
-	QComboBox* uniformChoice;
 };
 
 struct AttributeWidget : public QWidget
