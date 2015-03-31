@@ -32,6 +32,8 @@ using namespace std;
 
 UniformWidget::UniformWidget(ShaderEditorWidget* parent) : QWidget(), parent(parent)
 {
+	setMinimumHeight(20);
+	
 	layout = new QHBoxLayout();
 	setLayout(layout);
 
@@ -52,37 +54,56 @@ UniformWidget::UniformWidget(ShaderEditorWidget* parent) : QWidget(), parent(par
 	layout->addWidget(uniformName);
 	layout->addWidget(uniformChoice);
 
-	QPushButton* minusButton = new QPushButton("-");
-	layout->addWidget( minusButton );
-	connect( minusButton, &QPushButton::clicked, this, [this,parent](){ parent->removeWidget(this); } );
 	connect( uniformChoice,  SIGNAL( currentIndexChanged(int) ), this, SLOT( uniformChoiceChanged(int) ) );
 
-	openImageButton = nullptr;
-	image = nullptr;
+	openImageButton = new QPushButton("open");
+	image = new QLabel();
+	image->setMaximumSize(QSize(100,100));
+	image->setScaledContents(true);
+
+	connect( openImageButton,  SIGNAL( clicked() ), this, SLOT( chooseImage() ) );
+	layout->addWidget( openImageButton );
+	layout->addWidget( image );
+	openImageButton->setVisible(false);
+	image->setVisible(false);
+
+	layout->addStretch();
+
+	QPushButton* minusButton = new QPushButton("-" );
+	minusButton->setFixedSize( QSize( 40,20) );
+	layout->addWidget( minusButton, Qt::AlignRight );
+	connect( minusButton, &QPushButton::clicked, this, [this,parent](){ parent->removeWidget(this); } );
+
 }
 
 void UniformWidget::uniformChoiceChanged(int value)
 { 
 	if( value >= UNIFORM_TYPE::TEXTURE2D_0 && value <= UNIFORM_TYPE::TEXTURE2D_3 )
 	{
-		openImageButton = new QPushButton("open");
-		connect( openImageButton,  SIGNAL( clicked() ), this, SLOT( chooseImage() ) );
-		image = new QLabel();
-
-		layout->addWidget( openImageButton );
-		layout->addWidget( image );
+		openImageButton->setVisible(true);
+		image->setVisible(true);
+		
+		
 	}
 	else
 	{
-		if( openImageButton != nullptr && image != nullptr )
-		{
-			layout->removeWidget( openImageButton );
+		openImageButton->setVisible(false);
+		image->setVisible(false);
+
+		/*layout->removeWidget( openImageButton );
 			layout->removeWidget( image );
 
 			delete openImageButton;
-			delete image;
-		}
+			delete image;*/
+		//}
 	}
+}
+
+void UniformWidget::setImage(const std::string& filename )
+{
+	image->setPixmap( QPixmap( QString::fromStdString(filename) ) );
+
+	parent->setUniformTexture( (UNIFORM_TYPE)uniformChoice->currentIndex(), QString::fromStdString(filename) );
 }
 
 void UniformWidget::chooseImage()
@@ -91,8 +112,6 @@ void UniformWidget::chooseImage()
 	
 	if( !file.isEmpty() )
 	{
-		 image->setPixmap( QPixmap( file ) );
+		setImage( file.toStdString() );
 	}
-	
-	parent->setUniformTexture( (UNIFORM_TYPE)uniformChoice->currentIndex(), file );
 }

@@ -555,7 +555,7 @@ void DynamicModelInstance::Draw(MATERIAL_DRAW_PASS Pass)
 		drawcall.material          = meshMaterial;
 		drawcall.mesh              = &(mesh->mesh);
 		drawcall.transparencyMode  = TRANSPARENCY_MODE::GL_SRC_ALPHA_GL_ONE_MINUS_SRC_ALPHA;
-		drawcall.hasTransparency   = false;
+		drawcall.hasTransparency   = true;
 		drawcall.disableDepthWrite = false;
 		Renderer::get()->draw( drawcall );
 	}
@@ -793,7 +793,7 @@ void OpenGLStaticModelInstance::Draw(MATERIAL_DRAW_PASS Pass)
 
 			drawcall.material = materials[meshIndex];
 			drawcall.mesh     = &(glModel->meshes[meshIndex]);
-			drawcall.hasTransparency = glModel->meshes[meshIndex].isTranparent;
+			drawcall.hasTransparency = true; //glModel->meshes[meshIndex].isTranparent;
 			drawcall.transparencyMode = TRANSPARENCY_MODE::GL_SRC_ALPHA_GL_ONE_MINUS_SRC_ALPHA;
 			Renderer::get()->draw( drawcall );
 		}

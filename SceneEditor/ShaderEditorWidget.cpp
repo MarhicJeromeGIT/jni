@@ -52,10 +52,12 @@ ShaderEditorWidget::ShaderEditorWidget( ) : QWidget()
 	QHBoxLayout* topButtonsLayout = new QHBoxLayout();
 	QPushButton* saveButton = new QPushButton( QString("Save") );
 	QPushButton* openButton = new QPushButton( QString("Open") );
+	QPushButton* compileButon = new QPushButton( QString("Compile"));
 	QPushButton* sphereButton = new QPushButton( QString("Sphere") );
 	QPushButton* planeButton = new QPushButton( QString("Plane") );
 	topButtonsLayout->addWidget( saveButton );
 	topButtonsLayout->addWidget( openButton );
+	topButtonsLayout->addWidget( compileButon );
 	topButtonsLayout->addWidget( sphereButton );
 	topButtonsLayout->addWidget( planeButton );
 	connect( saveButton,   &QPushButton::clicked, this, [this](){ saveCurrentState(); } );
@@ -80,23 +82,26 @@ ShaderEditorWidget::ShaderEditorWidget( ) : QWidget()
 	leftSplitter->addWidget(glWidget);
 
 	// attribute & uniform zone
-	QHBoxLayout* buttonZone = new QHBoxLayout();
-	QPushButton* compileButon = new QPushButton("Compile");
-	buttonZone->addWidget(compileButon);
 	
 	uniformsZone = new QVBoxLayout();
+	uniformsZone->setSpacing(20);
+	compileButon->setMinimumHeight(100);
 	attributesZone = new QVBoxLayout();
 
 	tweakableLayout = new QVBoxLayout;
 	tweakableLayout->setAlignment( Qt::AlignTop );
 	QScrollArea *leftSide = new QScrollArea();  
-	leftSide->setWidgetResizable(false);
-	leftSide->setLayout( tweakableLayout );
+	leftSide->setWidgetResizable(true);
+	//leftSide->setLayout( tweakableLayout );
+	leftSplitter->addWidget(leftSide);
 	
-	tweakableLayout->addLayout(buttonZone);
+	QWidget* l = new QWidget();
+	leftSide->setWidget(l);
+	l->setLayout( tweakableLayout );
+
 	tweakableLayout->addLayout(uniformsZone);
 	tweakableLayout->addLayout(attributesZone);
-	leftSplitter->addWidget(leftSide);
+
 
 	// Right side : Vertex and fragment shader textedit
 	QSplitter* splitterRightside = new QSplitter(this);
@@ -313,6 +318,22 @@ void ShaderEditorWidget::saveCurrentState()
 		TiXmlElement* newUniform = new TiXmlElement( "uniform" );
 		newUniform->SetAttribute("name", it->first );
 		newUniform->SetAttribute("value", (int)it->second );
+
+		switch(it->second) // save the value of the uniform (texture name for texture type, value for float, etc)
+		{
+		case UNIFORM_TYPE::TEXTURE2D_0:
+			newUniform->SetAttribute("filename", shaderScene->customParams.tex0->filename );
+			break;
+		case UNIFORM_TYPE::TEXTURE2D_1:
+			newUniform->SetAttribute("filename", shaderScene->customParams.tex0->filename );
+			break;
+		case UNIFORM_TYPE::TEXTURE2D_2:
+			newUniform->SetAttribute("filename", shaderScene->customParams.tex0->filename );
+			break;
+		case UNIFORM_TYPE::TEXTURE2D_3:
+			newUniform->SetAttribute("filename", shaderScene->customParams.tex0->filename );
+			break;
+		}
 		UniformsElement->LinkEndChild( newUniform );
 	}
 
@@ -372,6 +393,18 @@ void ShaderEditorWidget::openCurrentState()
 			addedUniformWidgets.push_back(unif1);
 			unif1->uniformName->setText( QString::fromStdString(name) );
 			unif1->uniformChoice->setCurrentIndex( value );
+
+			switch( (UNIFORM_TYPE)value ) // save the value of the uniform (texture name for texture type, value for float, etc)
+			{
+			case UNIFORM_TYPE::TEXTURE2D_0:
+			case UNIFORM_TYPE::TEXTURE2D_1:
+			case UNIFORM_TYPE::TEXTURE2D_2:
+			case UNIFORM_TYPE::TEXTURE2D_3:
+				std::string name;
+				uniform->QueryStringAttribute("filename",&name);
+				unif1->setImage( name );
+				break;
+			}
 
 			uniform = uniform->NextSiblingElement();
 		}

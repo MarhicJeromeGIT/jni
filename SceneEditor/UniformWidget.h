@@ -39,7 +39,7 @@ struct UniformWidget : public QWidget
 public slots:
 	void uniformChoiceChanged(int value);
 	void chooseImage();
-
+	void setImage(const std::string& filename );
 public:
 	ShaderEditorWidget* parent;
 
