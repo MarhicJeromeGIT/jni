@@ -84,8 +84,7 @@ ShaderEditorWidget::ShaderEditorWidget( ) : QWidget()
 	// attribute & uniform zone
 	
 	uniformsZone = new QVBoxLayout();
-	uniformsZone->setSpacing(20);
-	compileButon->setMinimumHeight(100);
+	//uniformsZone->setSpacing(20);
 	attributesZone = new QVBoxLayout();
 
 	tweakableLayout = new QVBoxLayout;
@@ -325,13 +324,13 @@ void ShaderEditorWidget::saveCurrentState()
 			newUniform->SetAttribute("filename", shaderScene->customParams.tex0->filename );
 			break;
 		case UNIFORM_TYPE::TEXTURE2D_1:
-			newUniform->SetAttribute("filename", shaderScene->customParams.tex0->filename );
+			newUniform->SetAttribute("filename", shaderScene->customParams.tex1->filename );
 			break;
 		case UNIFORM_TYPE::TEXTURE2D_2:
-			newUniform->SetAttribute("filename", shaderScene->customParams.tex0->filename );
+			newUniform->SetAttribute("filename", shaderScene->customParams.tex2->filename );
 			break;
 		case UNIFORM_TYPE::TEXTURE2D_3:
-			newUniform->SetAttribute("filename", shaderScene->customParams.tex0->filename );
+			newUniform->SetAttribute("filename", shaderScene->customParams.tex3->filename );
 			break;
 		}
 		UniformsElement->LinkEndChild( newUniform );

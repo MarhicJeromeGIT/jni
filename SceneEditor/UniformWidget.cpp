@@ -29,11 +29,11 @@ using namespace std;
 
 #include "tinyxml.h"
 #include "ShaderEditorWidget.h"
+#include "AntigravityConfig.h"
 
 UniformWidget::UniformWidget(ShaderEditorWidget* parent) : QWidget(), parent(parent)
 {
-	setMinimumHeight(20);
-	
+
 	layout = new QHBoxLayout();
 	setLayout(layout);
 
@@ -50,7 +50,7 @@ UniformWidget::UniformWidget(ShaderEditorWidget* parent) : QWidget(), parent(par
 	uniformChoice->addItem( QString("tex2 (Sampler2D)") );
 	uniformChoice->addItem( QString("tex3 (Sampler2D)") );
 	uniformChoice->addItem( QString("cubemap (samplerCube)") );
-
+	uniformChoice->addItem( QString("light pos (vec4)"));
 	layout->addWidget(uniformName);
 	layout->addWidget(uniformChoice);
 
@@ -67,6 +67,11 @@ UniformWidget::UniformWidget(ShaderEditorWidget* parent) : QWidget(), parent(par
 	openImageButton->setVisible(false);
 	image->setVisible(false);
 
+	slider = new QSlider( Qt::Orientation::Horizontal );
+	slider->setVisible(false);
+	slider->setRange(0,360);
+	layout->addWidget(slider);
+
 	layout->addStretch();
 
 	QPushButton* minusButton = new QPushButton("-" );
@@ -78,25 +83,23 @@ UniformWidget::UniformWidget(ShaderEditorWidget* parent) : QWidget(), parent(par
 
 void UniformWidget::uniformChoiceChanged(int value)
 { 
-	if( value >= UNIFORM_TYPE::TEXTURE2D_0 && value <= UNIFORM_TYPE::TEXTURE2D_3 )
-	{
-		openImageButton->setVisible(true);
-		image->setVisible(true);
-		
-		
-	}
-	else
-	{
-		openImageButton->setVisible(false);
-		image->setVisible(false);
+	bool imageType = value >= UNIFORM_TYPE::TEXTURE2D_0 && value <= UNIFORM_TYPE::TEXTURE2D_3;
+	openImageButton->setVisible(imageType);
+	image->setVisible(imageType);
+	
+	bool lightPosType = value == UNIFORM_TYPE::LIGHT_POSITION;
+	slider->setVisible(lightPosType);
+	connect( slider, SIGNAL( valueChanged(int) ), this, SLOT( changeLightPos(int) ) );
 
-		/*layout->removeWidget( openImageButton );
-			layout->removeWidget( image );
+}
 
-			delete openImageButton;
-			delete image;*/
-		//}
-	}
+void UniformWidget::changeLightPos(int value)
+{
+	float distance = 10.0f;
+	float height = 5.0f;
+	float angle = ((float)value) / 180.0f * 3.1415;
+	ShaderParams::get()->lights[0].lightPosition       = glm::vec4( cos(angle) * distance, height, sin(angle)* distance,1.0);
+
 }
 
 void UniformWidget::setImage(const std::string& filename )

@@ -115,7 +115,7 @@ void ShaderEditorScene::init()
 	Model* sphereModel = new Model();
 	sphereModel->Load( DATA_PATH "sphereModel.txt" );
 	OpenGLStaticModel* sphereGL = new OpenGLStaticModel(sphereModel);
-	sphereMesh = new OpenGLStaticModelInstance( glm::translate(mat4(1.0), vec3(0.0,0.5,0.0) ), sphereGL );
+	sphereMesh = new OpenGLStaticModelInstance( glm::translate(mat4(1.0), vec3(0.0,0.0,0.0) ), sphereGL );
 
 	customMat = new CustomMaterial();
 	sphereMesh->setMaterial(0,customMat);
@@ -291,10 +291,15 @@ void MyShader::updateParams(map<std::string,UNIFORM_TYPE>& aliasToUniformTypeMap
 	{
 		((UniformSamplerCube*)uniform )->setValue( tex->getTexId() );
 	};
+	auto setValueVec4f = [](Uniform* uniform, glm::vec4* vec )
+	{
+		((UniformVec4f*)uniform)->setValue( *vec );
+	};
 	glm::mat4* viewMatrix       = &( ShaderParams::get()->viewMatrix );
 	glm::mat4* objectMatrix     = &( ShaderParams::get()->objectMatrix );
 	glm::mat4* projectionMatrix = &( ShaderParams::get()->projectionMatrix );
 	float* time                 = &( ShaderParams::get()->time );
+	glm::vec4* lightPos         = &( ShaderParams::get()->lights[0].lightPosition );
 	map<UNIFORM_TYPE, std::function< void (Uniform*) > > setValueMap;
 
 	setValueMap.insert( pair< UNIFORM_TYPE, std::function< void (Uniform*) > >(UNIFORM_TYPE::VIEW_MATRIX, std::bind( setValueMat4f, std::placeholders::_1, viewMatrix ) ) );
@@ -308,6 +313,7 @@ void MyShader::updateParams(map<std::string,UNIFORM_TYPE>& aliasToUniformTypeMap
 	setValueMap.insert( pair< UNIFORM_TYPE, std::function< void (Uniform*) > >(UNIFORM_TYPE::TEXTURE2D_2, std::bind( setValueSampler2D, std::placeholders::_1, params.tex2 ) ) );
 	setValueMap.insert( pair< UNIFORM_TYPE, std::function< void (Uniform*) > >(UNIFORM_TYPE::TEXTURE2D_3, std::bind( setValueSampler2D, std::placeholders::_1, params.tex3 ) ) );
 	setValueMap.insert( pair< UNIFORM_TYPE, std::function< void (Uniform*) > >(UNIFORM_TYPE::TEXTURE_CUBEMAP, std::bind( setValueSamplerCube, std::placeholders::_1, params.cubemap ) ) );
+	setValueMap.insert( pair< UNIFORM_TYPE, std::function< void (Uniform*) > >(UNIFORM_TYPE::LIGHT_POSITION, std::bind( setValueVec4f, std::placeholders::_1, lightPos ) ) );
 
 	for( auto it = aliasToUniformTypeMap.begin(); it != aliasToUniformTypeMap.end(); it++ )
 	{

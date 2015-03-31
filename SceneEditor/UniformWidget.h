@@ -40,6 +40,7 @@ public slots:
 	void uniformChoiceChanged(int value);
 	void chooseImage();
 	void setImage(const std::string& filename );
+	void changeLightPos(int value);
 public:
 	ShaderEditorWidget* parent;
 
@@ -50,6 +51,8 @@ public:
 
 	QPushButton* openImageButton;
 	QLabel *image;
+
+	QSlider* slider;
 
 };
 
