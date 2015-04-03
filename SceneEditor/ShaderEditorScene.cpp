@@ -113,7 +113,19 @@ void ShaderEditorScene::init()
 
 	// Sphere mesh
 	Model* sphereModel = new Model();
-	sphereModel->Load( DATA_PATH "sphereModel.txt" );
+	{
+		Assimp::Importer importer;
+		ModelImport modelImportSphere;
+
+		const aiScene* sceneSphere = importer.ReadFile( DATA_PATH "sphere_correct.dae", aiProcess_GenSmoothNormals | aiProcess_Triangulate | aiProcess_CalcTangentSpace | aiProcess_JoinIdenticalVertices );
+		assert(sceneSphere);
+		bool result = modelImportSphere.Import( sceneSphere, sphereModel );
+		assert( result == true );
+		sphereModel->Save( DATA_PATH "sphere_correct.txt" );
+		delete sphereModel;
+		sphereModel = new Model();
+	}
+	sphereModel->Load( DATA_PATH "sphere_correct.txt" );
 	OpenGLStaticModel* sphereGL = new OpenGLStaticModel(sphereModel);
 	sphereMesh = new OpenGLStaticModelInstance( glm::translate(mat4(1.0), vec3(0.0,0.0,0.0) ), sphereGL );
 
